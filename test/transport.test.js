@@ -1,0 +1,328 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import {
+  buildEnvelope,
+  extractModelIdFromUrl,
+  unwrapSseResponseStream,
+  isGoogleGenerativeUrl,
+  createAntigravityFetch,
+  adaptToolsForModel,
+  getAntigravityHeaders,
+  postProcessContents,
+  sanitizeForOpenApi,
+  sanitizeGenerationConfig,
+  extractRetryDelay,
+  requiresToolCallId,
+  normalizeToolCallId,
+  resolveWireModelId,
+  SKIP_THOUGHT_SIGNATURE,
+  ANTIGRAVITY_MODEL_CATALOG,
+} from "../transport.js";
+import { generatePKCE, buildAuthUrl, toExpires } from "../oauth.js";
+import { writeMeta, readMeta } from "../store.js";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+describe("oauth helpers", () => {
+  it("generates pkce verifier/challenge", () => {
+    const { verifier, challenge } = generatePKCE();
+    assert.ok(verifier.length > 20);
+    assert.ok(challenge.length > 20);
+    assert.notEqual(verifier, challenge);
+  });
+
+  it("builds auth url with required params", () => {
+    const url = buildAuthUrl({ challenge: "ch", state: "st" });
+    const u = new URL(url);
+    assert.equal(u.searchParams.get("code_challenge_method"), "S256");
+    assert.equal(u.searchParams.get("access_type"), "offline");
+    assert.ok(u.searchParams.get("scope")?.includes("cloud-platform"));
+  });
+
+  it("toExpires applies 5min buffer", () => {
+    const now = Date.now();
+    const exp = toExpires(3600);
+    assert.ok(exp < now + 3600 * 1000);
+    assert.ok(exp > now + 3000 * 1000);
+  });
+});
+
+describe("transport", () => {
+  it("extracts model id from generative language url", () => {
+    const id = extractModelIdFromUrl(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:streamGenerateContent?alt=sse",
+    );
+    assert.equal(id, "gemini-3-flash");
+  });
+
+  it("detects google generative urls", () => {
+    assert.equal(
+      isGoogleGenerativeUrl(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent",
+      ),
+      true,
+    );
+    assert.equal(isGoogleGenerativeUrl("https://api.openai.com/v1/chat/completions"), false);
+  });
+
+  it("builds antigravity envelope preserving tools + injects system", () => {
+    const geminiBody = {
+      contents: [{ role: "user", parts: [{ text: "hi" }] }],
+      tools: [{ functionDeclarations: [{ name: "bash", description: "run", parameters: { type: "object" } }] }],
+      generationConfig: { temperature: 0.2 },
+    };
+    const env = buildEnvelope(geminiBody, { projectId: "proj-1", modelId: "gemini-3-flash" });
+    assert.equal(env.project, "proj-1");
+    assert.equal(env.model, "gemini-3-flash");
+    assert.equal(env.requestType, "agent");
+    assert.equal(env.userAgent, "antigravity");
+    assert.equal(env.request.tools[0].functionDeclarations[0].name, "bash");
+    // OpenClaw omits sessionId unless caller supplies it
+    assert.equal(env.request.sessionId, undefined);
+    assert.ok(env.request.systemInstruction.parts.some((p) => String(p.text).includes("You are Antigravity")));
+    assert.equal(env.request.systemInstruction.role, "user");
+  });
+
+  it("adapts Claude tools to sanitized legacy parameters", () => {
+    const tools = [
+      {
+        functionDeclarations: [
+          {
+            name: "bash",
+            parametersJsonSchema: {
+              $schema: "https://json-schema.org/draft/2020-12/schema",
+              type: "object",
+              properties: { cmd: { type: "string" } },
+            },
+          },
+        ],
+      },
+    ];
+    const adapted = adaptToolsForModel(tools, "claude-sonnet-4-5-thinking");
+    assert.ok(adapted[0].functionDeclarations[0].parameters);
+    assert.equal(adapted[0].functionDeclarations[0].parameters.$schema, undefined);
+    assert.equal(adapted[0].functionDeclarations[0].parametersJsonSchema, undefined);
+  });
+
+  it("sanitizeForOpenApi strips meta keys", () => {
+    const s = sanitizeForOpenApi({ $schema: "x", type: "object", $defs: {}, properties: { a: { type: "string" } } });
+    assert.equal(s.$schema, undefined);
+    assert.equal(s.$defs, undefined);
+    assert.equal(s.type, "object");
+  });
+
+  it("postProcessContents adds gemini-3 functionCall thoughtSignature sentinel", () => {
+    const contents = [
+      {
+        role: "model",
+        parts: [{ functionCall: { name: "bash", args: { c: "ls" } } }],
+      },
+    ];
+    const out = postProcessContents(contents, "gemini-3-flash");
+    assert.equal(out[0].parts[0].thoughtSignature, SKIP_THOUGHT_SIGNATURE);
+  });
+
+  it("postProcessContents normalizes tool ids for claude", () => {
+    assert.equal(requiresToolCallId("claude-sonnet-4-5"), true);
+    assert.equal(normalizeToolCallId("a/b:c!"), "a_b_c_");
+    const contents = [
+      {
+        role: "model",
+        parts: [{ functionCall: { name: "bash", args: {}, id: "bad/id:1" } }],
+      },
+      {
+        role: "user",
+        parts: [{ functionResponse: { name: "bash", response: { output: "ok" }, id: "bad/id:1" } }],
+      },
+    ];
+    const out = postProcessContents(contents, "claude-sonnet-4-5");
+    assert.equal(out[0].parts[0].functionCall.id, "bad_id_1");
+    assert.equal(out[1].parts[0].functionResponse.id, "bad_id_1");
+  });
+
+  it("skips empty text parts", () => {
+    const contents = [
+      {
+        role: "model",
+        parts: [{ text: "   " }, { text: "keep" }],
+      },
+    ];
+    const out = postProcessContents(contents, "claude-sonnet-4-5");
+    assert.equal(out[0].parts.length, 1);
+    assert.equal(out[0].parts[0].text, "keep");
+  });
+
+  it("antigravity headers include UA and claude beta when needed", () => {
+    const h1 = getAntigravityHeaders("gemini-3-flash");
+    assert.match(h1["User-Agent"], /^antigravity\//);
+    assert.equal(h1["anthropic-beta"], undefined);
+
+    process.env.OPENCODE_AGY_UA_MODE = "cli";
+    const hCli = getAntigravityHeaders("gemini-3-flash");
+    assert.match(hCli["User-Agent"], /^agy\//);
+
+    process.env.OPENCODE_AGY_UA_MODE = "desktop";
+    const hDesk = getAntigravityHeaders("gemini-3-flash");
+    assert.match(hDesk["User-Agent"], /^Antigravity\//);
+    delete process.env.OPENCODE_AGY_UA_MODE;
+
+    const h2 = getAntigravityHeaders("claude-opus-4-6-thinking");
+    assert.equal(h2["anthropic-beta"], "interleaved-thinking-2025-05-14");
+  });
+
+  it("extractRetryDelay parses body and headers", () => {
+    assert.ok(extractRetryDelay('Please retry in 2s', null) >= 2000);
+    const headers = new Headers({ "retry-after": "3" });
+    assert.ok(extractRetryDelay("", { headers }) >= 3000);
+  });
+
+  it("catalog has full OpenClaw set", () => {
+    const ids = Object.keys(ANTIGRAVITY_MODEL_CATALOG);
+    for (const need of [
+      "gemini-3-flash",
+      "gemini-3.1-pro-high",
+      "claude-opus-4-6-thinking",
+      "claude-sonnet-4-5",
+      "gpt-oss-120b-medium",
+    ]) {
+      assert.ok(ids.includes(need), `missing ${need}`);
+    }
+  });
+
+  it("sanitizeGenerationConfig maps pro-high to thinkingLevel HIGH", () => {
+    const cfg = sanitizeGenerationConfig(
+      { thinkingConfig: { includeThoughts: true, thinkingBudget: 8192 } },
+      "gemini-3.1-pro-high",
+    );
+    assert.equal(cfg.thinkingConfig.thinkingLevel, "HIGH");
+    assert.equal(cfg.thinkingConfig.thinkingBudget, undefined);
+  });
+
+  it("buildEnvelope injects HIGH thinking for pro-high when missing", () => {
+    const env = buildEnvelope(
+      { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
+      { projectId: "p", modelId: "gemini-3.1-pro-high" },
+    );
+    assert.equal(env.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
+  });
+
+  it("unwraps SSE response envelope incrementally", async () => {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const input = [
+      'data: {"response":{"candidates":[{"content":{"parts":[{"text":"A"}]}}]}}\n',
+      "\n",
+      'data: {"response":{"candidates":[{"content":{"parts":[{"functionCall":{"name":"bash","args":{"c":"ls"}}}]}}]}}\n',
+      "\n",
+    ].join("");
+    const stream = new ReadableStream({
+      start(c) {
+        for (const ch of input) c.enqueue(encoder.encode(ch));
+        c.close();
+      },
+    });
+    const outStream = unwrapSseResponseStream(stream);
+    const reader = outStream.getReader();
+    let text = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      text += decoder.decode(value);
+    }
+    assert.match(text, /"text":"A"/);
+    assert.match(text, /"functionCall"/);
+    assert.doesNotMatch(text, /"response":/);
+  });
+
+  it("unwraps SSE with CRLF and multi-event chunks", async () => {
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const chunk =
+      ": keep-alive\r\n" +
+      'data: {"response":{"candidates":[{"content":{"parts":[{"text":"Hi"}]}}]}}\r\n\r\n' +
+      'data: {"response":{"candidates":[{"content":{"parts":[{"functionCall":{"name":"t","args":{}}}]}}]}}\r\n\r\n';
+    const stream = new ReadableStream({
+      start(c) {
+        c.enqueue(encoder.encode(chunk));
+        c.close();
+      },
+    });
+    const outStream = unwrapSseResponseStream(stream);
+    const reader = outStream.getReader();
+    let text = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      text += decoder.decode(value);
+    }
+    assert.match(text, /"text":"Hi"/);
+    assert.match(text, /"functionCall"/);
+    assert.doesNotMatch(text, /"response":/);
+  });
+
+  it("custom fetch rewrites to v1internal and unwraps with signature post-process", async () => {
+    const calls = [];
+    const mockFetch = async (url, init) => {
+      calls.push({ url: String(url), body: init?.body });
+      const payload = `data: ${JSON.stringify({
+        response: {
+          candidates: [{ content: { parts: [{ text: "ok" }, { functionCall: { name: "t", args: {} } }] } }],
+        },
+      })}\n\n`;
+      return new Response(payload, {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      });
+    };
+
+    const fetchImpl = createAntigravityFetch({
+      getAccessToken: async () => "token-x",
+      getProjectId: async () => "proj-x",
+      fetchImpl: mockFetch,
+    });
+
+    const res = await fetchImpl(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:streamGenerateContent?alt=sse",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": "should-strip" },
+        body: JSON.stringify({
+          contents: [
+            { role: "user", parts: [{ text: "hi" }] },
+            {
+              role: "model",
+              parts: [{ functionCall: { name: "bash", args: { c: "ls" } } }],
+            },
+          ],
+          tools: [{ functionDeclarations: [{ name: "bash" }] }],
+        }),
+      },
+    );
+
+    assert.equal(res.status, 200);
+    assert.ok(String(calls[0].url).includes("/v1internal:streamGenerateContent"));
+    const sent = JSON.parse(calls[0].body);
+    assert.equal(sent.project, "proj-x");
+    assert.equal(sent.model, "gemini-3-flash");
+    // Gemini-3 functionCall in history should get thoughtSignature sentinel
+    const modelParts = sent.request.contents.find((c) => c.role === "model").parts;
+    assert.equal(modelParts[0].thoughtSignature, SKIP_THOUGHT_SIGNATURE);
+
+    const text = await res.text();
+    assert.match(text, /"text":"ok"/);
+    assert.doesNotMatch(text, /"response":/);
+  });
+});
+
+describe("store sidecar", () => {
+  it("writes and reads projectId with isolation path", () => {
+    const dir = mkdtempSync(join(tmpdir(), "agy-meta-"));
+    const path = join(dir, "meta.json");
+    writeMeta({ projectId: "p1", email: "a@b.c" }, path);
+    const m = readMeta(path);
+    assert.equal(m.projectId, "p1");
+    assert.equal(m.email, "a@b.c");
+    rmSync(dir, { recursive: true, force: true });
+  });
+});

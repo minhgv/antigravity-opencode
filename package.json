@@ -1,0 +1,12 @@
+{
+  "name": "google-antigravity-auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenCode AuthHook + custom fetch for Google Antigravity (Cloud Code Assist) Gemini models",
+  "main": "plugin.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "install-plugin": "mkdir -p \"$HOME/.config/opencode/plugins/google-antigravity-auth\" && cp plugin.js oauth.js transport.js store.js package.json \"$HOME/.config/opencode/plugins/google-antigravity-auth/\""
+  }
+}
