@@ -62,8 +62,6 @@ mkdir -p ~/.config/opencode/plugins/antigravity-auth
 cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plugins/antigravity-auth/
 ```
 
-**Bước 2.1: (Không cần) OAuth Client credentials** — Plugin nhúng sẵn OAuth client của chính Antigravity IDE (Google cấp). Không cần set `ANTIGRAVITY_CLIENT_ID`/`ANTIGRAVITY_CLIENT_SECRET`. Credentials được obfuscate XOR trong `oauth.js` để qua GitHub secret scanning.
-
 **Bước 3:** Thêm vào `~/.config/opencode/opencode.json` (tạo mới nếu chưa có):
 ```json
 {
