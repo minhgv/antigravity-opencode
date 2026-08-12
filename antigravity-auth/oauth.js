@@ -5,13 +5,19 @@
 import { createServer } from "node:http";
 import { createHash, randomBytes } from "node:crypto";
 
-const decode = (s) => Buffer.from(s, "base64").toString("utf8");
+// OAuth client credentials are provided via environment variables
+// (ANTIGRAVITY_CLIENT_ID / ANTIGRAVITY_CLIENT_SECRET). Never hardcode them.
+export const CLIENT_ID = process.env.ANTIGRAVITY_CLIENT_ID;
+export const CLIENT_SECRET = process.env.ANTIGRAVITY_CLIENT_SECRET;
 
-// Same embedded client credentials as OpenClaw pi-ai Antigravity module
-export const CLIENT_ID = decode(
-  "",
-);
-export const CLIENT_SECRET = decode("");
+export function requireCredentials() {
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error(
+      "Antigravity OAuth credentials missing. Set ANTIGRAVITY_CLIENT_ID and ANTIGRAVITY_CLIENT_SECRET environment variables. " +
+      "How to fix: add both variables to your shell profile (e.g. ~/.zshrc) or to the plugin's launch environment before starting OpenCode.",
+    );
+  }
+}
 
 export const REDIRECT_URI = "http://localhost:51121/oauth-callback";
 export const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -33,6 +39,7 @@ export function generatePKCE() {
 }
 
 export function buildAuthUrl({ challenge, state, redirectUri = REDIRECT_URI }) {
+  requireCredentials();
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     response_type: "code",
@@ -53,6 +60,7 @@ export function buildAuthUrl({ challenge, state, redirectUri = REDIRECT_URI }) {
  * @param {string} [redirectUri]
  */
 export async function exchangeCode(code, verifier, redirectUri = REDIRECT_URI) {
+  requireCredentials();
   const response = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -76,6 +84,7 @@ export async function exchangeCode(code, verifier, redirectUri = REDIRECT_URI) {
  * @param {string} refreshToken
  */
 export async function refreshAccessToken(refreshToken) {
+  requireCredentials();
   const response = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

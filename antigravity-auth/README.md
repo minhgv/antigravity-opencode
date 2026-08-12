@@ -42,6 +42,17 @@ Copy **6 tệp** sau vào thư mục `~/.config/opencode/plugins/google-antigrav
 cp plugin.js oauth.js transport.js store.js package.json README.md ~/.config/opencode/plugins/google-antigravity-auth/
 ```
 
+### Bước 2.1: Cấu hình OAuth Client credentials (bắt buộc)
+
+Plugin đọc credentials từ biến môi trường (không nhúng trong code). Tạo OAuth Client tại [Google Cloud Console](https://console.cloud.google.com/apis/credentials), sau đó set 2 biến:
+
+```bash
+export ANTIGRAVITY_CLIENT_ID="<your-client-id>.apps.googleusercontent.com"
+export ANTIGRAVITY_CLIENT_SECRET="<your-client-secret>"
+```
+
+Thêm vào `~/.zshrc` (hoặc `~/.bashrc`) để tồn tại qua các phiên. Nếu thiếu credentials, plugin báo lỗi rõ ràng khi đăng nhập.
+
 ### Bước 3: Cấu hình `~/.config/opencode/opencode.json`
 
 Mở tệp cấu hình OpenCode tại `~/.config/opencode/opencode.json` (nếu chưa có thì tạo mới) và thêm plugin cùng danh sách provider/models như sau:
