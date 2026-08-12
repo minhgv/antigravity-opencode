@@ -6,7 +6,7 @@
  * - loader returns { apiKey: OAUTH_DUMMY_KEY, fetch: antigravityFetch }
  * - Provider config uses npm: @ai-sdk/google so tool calls stay Gemini-native
  *
- * Install: copy this directory to ~/.config/opencode/plugins/google-antigravity-auth/
+ * Install: copy this directory to ~/.config/opencode/plugins/antigravity-auth/
  * and register in opencode.json plugin array + provider block.
  */
 

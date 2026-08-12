@@ -1,5 +1,5 @@
 {
-  "name": "google-antigravity-auth",
+  "name": "antigravity-auth",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,6 @@
   "main": "plugin.js",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "install-plugin": "mkdir -p \"$HOME/.config/opencode/plugins/google-antigravity-auth\" && cp plugin.js oauth.js transport.js store.js package.json \"$HOME/.config/opencode/plugins/google-antigravity-auth/\""
+    "install-plugin": "mkdir -p \"$HOME/.config/opencode/plugins/antigravity-auth\" && cp plugin.js oauth.js transport.js store.js package.json \"$HOME/.config/opencode/plugins/antigravity-auth/\""
   }
 }

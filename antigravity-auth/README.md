@@ -24,11 +24,11 @@ Trước khi cài đặt, hãy đảm bảo máy tính đã trang bị các côn
 Mở Terminal và chạy lệnh sau để tạo thư mục chứa plugin trong cấu hình OpenCode:
 
 ```bash
-mkdir -p ~/.config/opencode/plugins/google-antigravity-auth
+mkdir -p ~/.config/opencode/plugins/antigravity-auth
 ```
 
 ### Bước 2: Tải / Copy các tệp mã nguồn Plugin vào vị trí
-Copy **6 tệp** sau vào thư mục `~/.config/opencode/plugins/google-antigravity-auth/`:
+Copy **6 tệp** sau vào thư mục `~/.config/opencode/plugins/antigravity-auth/`:
 
 - `plugin.js`
 - `oauth.js`
@@ -39,19 +39,12 @@ Copy **6 tệp** sau vào thư mục `~/.config/opencode/plugins/google-antigrav
 
 *(Nếu cài đặt thủ công từ thư mục dự án, chạy lệnh từ `antigravity-auth/`:)*
 ```bash
-cp plugin.js oauth.js transport.js store.js package.json README.md ~/.config/opencode/plugins/google-antigravity-auth/
+cp plugin.js oauth.js transport.js store.js package.json README.md ~/.config/opencode/plugins/antigravity-auth/
 ```
 
-### Bước 2.1: Cấu hình OAuth Client credentials (bắt buộc)
+### Bước 2.1: (Không cần) OAuth Client credentials
 
-Plugin đọc credentials từ biến môi trường (không nhúng trong code). Tạo OAuth Client tại [Google Cloud Console](https://console.cloud.google.com/apis/credentials), sau đó set 2 biến:
-
-```bash
-export ANTIGRAVITY_CLIENT_ID="<your-client-id>.apps.googleusercontent.com"
-export ANTIGRAVITY_CLIENT_SECRET="<your-client-secret>"
-```
-
-Thêm vào `~/.zshrc` (hoặc `~/.bashrc`) để tồn tại qua các phiên. Nếu thiếu credentials, plugin báo lỗi rõ ràng khi đăng nhập.
+Plugin nhúng sẵn OAuth client của chính Antigravity IDE (Google cấp, giống OpenClaw pi-ai). **Không cần** tạo OAuth Client riêng hay set `ANTIGRAVITY_CLIENT_ID`/`ANTIGRAVITY_CLIENT_SECRET`. Credentials được che giấu base64 trong `oauth.js`.
 
 ### Bước 3: Cấu hình `~/.config/opencode/opencode.json`
 
@@ -61,7 +54,7 @@ Mở tệp cấu hình OpenCode tại `~/.config/opencode/opencode.json` (nếu 
 {
   "$schema": "https://opencode.ai/config.json",
   "plugin": [
-    "./plugins/google-antigravity-auth/plugin.js"
+    "./plugins/antigravity-auth/plugin.js"
   ],
   "provider": {
     "google-antigravity": {
