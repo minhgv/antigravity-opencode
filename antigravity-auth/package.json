@@ -7,6 +7,6 @@
   "main": "plugin.js",
   "scripts": {
     "test": "node --test test/*.test.js",
-    "install-plugin": "mkdir -p \"$HOME/.config/opencode/plugins/antigravity-auth\" && cp plugin.js oauth.js transport.js store.js package.json \"$HOME/.config/opencode/plugins/antigravity-auth/\""
+    "install-plugin": "bash ../install.sh"
   }
 }

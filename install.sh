@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# One-shot installer for the Google Antigravity Auth plugin for OpenCode.
+# Agent/CLI-executable: idempotent, safe to re-run, merges config without clobbering.
+#
+# Usage:
+#   bash install.sh                    # install from this repo
+#   bash install.sh /path/to/repo      # install from another checkout
+#   OPENCODE_AGY_SKIP_CONFIG=1 bash install.sh   # copy files only, skip config merge
+set -euo pipefail
+
+REPO_DIR="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+SRC_DIR="$REPO_DIR/antigravity-auth"
+CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+OPENCODE_DIR="$CONFIG_HOME/opencode"
+PLUGIN_DIR="$OPENCODE_DIR/plugins/antigravity-auth"
+CONFIG_FILE="$OPENCODE_DIR/opencode.json"
+
+PLUGIN_FILES=(plugin.js oauth.js transport.js store.js package.json)
+
+echo "==> Installing antigravity-auth plugin to $PLUGIN_DIR"
+
+mkdir -p "$PLUGIN_DIR"
+for f in "${PLUGIN_FILES[@]}"; do
+  if [ ! -f "$SRC_DIR/$f" ]; then
+    echo "ERROR: source file missing: $SRC_DIR/$f" >&2
+    exit 1
+  fi
+  cp "$SRC_DIR/$f" "$PLUGIN_DIR/"
+done
+echo "    copied ${#PLUGIN_FILES[@]} files"
+
+if [ "${OPENCODE_AGY_SKIP_CONFIG:-0}" = "1" ]; then
+  echo "==> SKIP_CONFIG set — not touching $CONFIG_FILE"
+else
+  if [ ! -f "$CONFIG_FILE" ]; then
+    mkdir -p "$OPENCODE_DIR"
+    echo "{}" > "$CONFIG_FILE"
+  fi
+  echo "==> Merging plugin + provider into $CONFIG_FILE"
+  node - "$CONFIG_FILE" "$PLUGIN_DIR" <<'NODE'
+const fs = require("fs");
+const [configFile, pluginDir] = process.argv.slice(2);
+const cfg = JSON.parse(fs.readFileSync(configFile, "utf8"));
+const entry = `./plugins/antigravity-auth/plugin.js`;
+
+if (!Array.isArray(cfg.plugin)) cfg.plugin = [];
+if (!cfg.plugin.includes(entry)) cfg.plugin.push(entry);
+
+const MODELS = {
+  "gemini-3-flash": { name: "Gemini 3 Flash (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-pro-agent": { name: "Gemini 3.1 Pro (High) (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.1-pro-high": { name: "Gemini 3.1 Pro High (→ gemini-pro-agent)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.1-pro-low": { name: "Gemini 3.1 Pro (Low) (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.6-flash-high": { name: "Gemini 3.6 Flash (High) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.5-flash-low": { name: "Gemini 3.5 Flash (Medium) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "claude-opus-4-6-thinking": { name: "Claude Opus 4.6 Thinking (Antigravity, experimental)", limit: { context: 200000, output: 128000 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "claude-sonnet-4-6": { name: "Claude Sonnet 4.6 (Antigravity, experimental)", limit: { context: 200000, output: 64000 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+};
+
+cfg.provider = cfg.provider || {};
+cfg.provider["google-antigravity"] = cfg.provider["google-antigravity"] || {};
+cfg.provider["google-antigravity"].name = cfg.provider["google-antigravity"].name || "Google Antigravity";
+cfg.provider["google-antigravity"].npm = cfg.provider["google-antigravity"].npm || "@ai-sdk/google";
+cfg.provider["google-antigravity"].models = Object.assign({}, MODELS, cfg.provider["google-antigravity"].models || {});
+
+fs.writeFileSync(configFile, JSON.stringify(cfg, null, 2) + "\n");
+NODE
+  echo "    config merged"
+fi
+
+echo
+echo "==> Done. Next steps:"
+echo "  1. opencode auth login   # pick 'Google Antigravity (browser)'"
+echo "  2. opencode models google-antigravity"
+echo "  3. opencode              # select google-antigravity/gemini-3-flash"
