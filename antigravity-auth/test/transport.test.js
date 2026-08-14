@@ -11,6 +11,7 @@ import {
   postProcessContents,
   sanitizeForOpenApi,
   sanitizeGenerationConfig,
+  isMinimalThinkingSupported,
   extractRetryDelay,
   requiresToolCallId,
   normalizeToolCallId,
@@ -211,6 +212,25 @@ describe("transport", () => {
       { projectId: "p", modelId: "gemini-3.1-pro-high" },
     );
     assert.equal(env.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
+  });
+
+  it("floors gemini-3.7 flash thinkingLevel to LOW (backend rejects MINIMAL)", () => {
+    assert.equal(isMinimalThinkingSupported("gemini-3.6-flash-high"), true);
+    assert.equal(isMinimalThinkingSupported("gemini-3.7-flash-high"), false);
+    assert.equal(isMinimalThinkingSupported("gemini-4-flash"), false);
+
+    // OpenCode sends thinkingBudget for reasoning models -> plugin used to force MINIMAL (400 on 3.7)
+    const t37 = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.7-flash-high");
+    assert.equal(t37.thinkingConfig.thinkingLevel, "LOW");
+    assert.equal(t37.thinkingConfig.thinkingBudget, undefined);
+
+    // explicit MINIMAL on 3.7 also bumped to LOW
+    const explicit = sanitizeGenerationConfig({ thinkingConfig: { thinkingLevel: "minimal" } }, "gemini-3.7-flash-low");
+    assert.equal(explicit.thinkingConfig.thinkingLevel, "LOW");
+
+    // 3.6 keeps MINIMAL (supported)
+    const t36 = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.6-flash-high");
+    assert.equal(t36.thinkingConfig.thinkingLevel, "MINIMAL");
   });
 
   it("unwraps SSE response envelope incrementally", async () => {

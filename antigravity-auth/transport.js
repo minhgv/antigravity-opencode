@@ -69,6 +69,21 @@ export function isGeminiProLow(modelId) {
   return id.includes("gemini-3") && id.includes("pro") && id.includes("low");
 }
 
+/**
+ * MINIMAL thinking level is rejected by the Antigravity backend for Gemini 3.7+
+ * (HTTP 400 "Thinking level MINIMAL is not supported for this model"). The
+ * minimum supported floor there is LOW. Older models (gemini-3.6 and below)
+ * still accept MINIMAL.
+ */
+export function isMinimalThinkingSupported(modelId) {
+  const m = String(modelId || "").toLowerCase().match(/^gemini-(\d+)(?:\.(\d+))?/);
+  if (!m) return false;
+  const major = Number(m[1]);
+  const minor = m[2] !== undefined ? Number(m[2]) : 0;
+  if (major >= 4) return false;
+  return major === 3 ? minor < 7 : true;
+}
+
 export function requiresToolCallId(modelId) {
   const id = String(modelId || "");
   return id.startsWith("claude-") || id.startsWith("gpt-oss-");
@@ -248,12 +263,15 @@ export function sanitizeGenerationConfig(generationConfig, modelId) {
       if (!tc.thinkingLevel) tc.thinkingLevel = "HIGH";
       tc.includeThoughts = tc.includeThoughts !== false;
     } else if (isFlash) {
-      if (!tc.thinkingLevel) tc.thinkingLevel = "MINIMAL";
+      if (!tc.thinkingLevel) {
+        tc.thinkingLevel = isMinimalThinkingSupported(modelId) ? "MINIMAL" : "LOW";
+      }
       if (tc.includeThoughts === undefined) tc.includeThoughts = true;
     }
     if (typeof tc.thinkingLevel === "string") {
       tc.thinkingLevel = tc.thinkingLevel.toUpperCase();
       if (tc.thinkingLevel === "MIN") tc.thinkingLevel = "MINIMAL";
+      if (tc.thinkingLevel === "MINIMAL" && !isMinimalThinkingSupported(modelId)) tc.thinkingLevel = "LOW";
     }
     next.thinkingConfig = tc;
   } else if (isProHigh || isProLow || isPro) {
