@@ -738,29 +738,31 @@ function entry(name, context, output, reasoning, inputs = ["text", "image"]) {
   };
 }
 
-/** AICoworker openclaw.json (13) + pi-ai Claude/gpt-oss + pro-high alias */
+/** Model Catalog for Google Antigravity (16 active Gemini models) */
 export const ANTIGRAVITY_MODEL_CATALOG = {
-  "gemini-3.5-flash-extra-low": entry("Gemini 3.5 Flash (Low) (Antigravity)", 1048576, 65536, true),
-  "gemini-3.5-flash-low": entry("Gemini 3.5 Flash (Medium) (Antigravity)", 1048576, 65536, true),
-  "gemini-3-flash-agent": entry("Gemini 3.5 Flash (High) (Antigravity)", 1048576, 65536, true),
-  "gemini-3.5-flash-lite": entry("Gemini 3.5 Flash-Lite (Antigravity)", 1048576, 65535, false, ["text"]),
+  // Gemini 3.7 Flash
   "gemini-3.7-flash-high": entry("Gemini 3.7 Flash (High) (Antigravity)", 1048576, 65536, true),
   "gemini-3.7-flash-medium": entry("Gemini 3.7 Flash (Medium) (Antigravity)", 1048576, 65536, true),
   "gemini-3.7-flash-low": entry("Gemini 3.7 Flash (Low) (Antigravity)", 1048576, 65536, true),
+
+  // Gemini 3.1 Pro (Agent)
+  "gemini-pro-agent": entry("Gemini 3.1 Pro (High) (Antigravity)", 1048576, 65535, true),
+  "gemini-3.1-pro-high": entry("Gemini 3.1 Pro High (→ gemini-pro-agent)", 1048576, 65535, true),
+  "gemini-3.1-pro-low": entry("Gemini 3.1 Pro (Low) (Antigravity)", 1048576, 65535, true),
+
+  // Gemini 3.6 Flash
   "gemini-3.6-flash-high": entry("Gemini 3.6 Flash (High) (Antigravity)", 1048576, 65536, true),
   "gemini-3.6-flash-medium": entry("Gemini 3.6 Flash (Medium) (Antigravity)", 1048576, 65536, false),
   "gemini-3.6-flash-low": entry("Gemini 3.6 Flash (Low) (Antigravity)", 1048576, 65536, false),
+
+  // Gemini 3.5 Flash
+  "gemini-3-flash-agent": entry("Gemini 3.5 Flash (High) (Antigravity)", 1048576, 65536, true),
+  "gemini-3.5-flash-low": entry("Gemini 3.5 Flash (Medium) (Antigravity)", 1048576, 65536, true),
+  "gemini-3.5-flash-extra-low": entry("Gemini 3.5 Flash (Low) (Antigravity)", 1048576, 65536, true),
+  "gemini-3.5-flash-lite": entry("Gemini 3.5 Flash-Lite (Antigravity)", 1048576, 65535, false, ["text"]),
+
+  // Gemini 3 Flash & 3.1 Flash
   "gemini-3-flash": entry("Gemini 3 Flash (Antigravity)", 1048576, 65536, true),
-  "gemini-3.1-pro-low": entry("Gemini 3.1 Pro (Low) (Antigravity)", 1048576, 65535, true),
-  "gemini-pro-agent": entry("Gemini 3.1 Pro (High) (Antigravity)", 1048576, 65535, true),
-  "gemini-3.1-pro-high": entry("Gemini 3.1 Pro High (→ gemini-pro-agent)", 1048576, 65535, true),
   "gemini-3.1-flash-lite": entry("Gemini 3.1 Flash Lite (Antigravity)", 1048576, 65535, false, ["text"]),
   "gemini-3.1-flash-image": entry("Gemini 3.1 Flash Image (Antigravity)", 1000000, 64000, false, ["text"]),
-  "gemini-2.5-pro": entry("Gemini 2.5 Pro (Antigravity)", 1048576, 65535, true),
-  "claude-opus-4-6-thinking": entry("Claude Opus 4.6 Thinking (Antigravity, experimental)", 200000, 128000, true),
-  "claude-opus-4-5-thinking": entry("Claude Opus 4.5 Thinking (Antigravity, experimental)", 200000, 64000, true),
-  "claude-sonnet-4-6": entry("Claude Sonnet 4.6 (Antigravity, experimental)", 200000, 64000, true),
-  "claude-sonnet-4-5-thinking": entry("Claude Sonnet 4.5 Thinking (Antigravity, experimental)", 200000, 64000, true),
-  "claude-sonnet-4-5": entry("Claude Sonnet 4.5 (Antigravity, experimental)", 200000, 64000, false),
-  "gpt-oss-120b-medium": entry("GPT-OSS 120B Medium (Antigravity, experimental)", 131072, 32768, false, ["text"]),
 };

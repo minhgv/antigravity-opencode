@@ -2,7 +2,7 @@
 
 Plugin tích hợp xác thực **Google Antigravity OAuth** và **Cloud Code Assist API** trực tiếp vào **OpenCode** (v1.14+).
 
-Plugin cho phép sử dụng toàn bộ các mô hình Gemini, Claude (Thinking), và GPT-OSS thông qua tài khoản Google Antigravity mà **không cần API Key** và **không bị gãy Tool Calls** (do giữ nguyên native Gemini schema qua `@ai-sdk/google`).
+Plugin cho phép sử dụng toàn bộ các mô hình **Gemini (Flash, Pro, Thinking)** thông qua tài khoản Google Antigravity mà **không cần API Key** và **không bị gãy Tool Calls** (do giữ nguyên native Gemini schema qua `@ai-sdk/google`).
 
 ```
 antigravity-opencode/
@@ -74,34 +74,6 @@ cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plug
       "name": "Google Antigravity",
       "npm": "@ai-sdk/google",
       "models": {
-        "gemini-3.5-flash-extra-low": {
-          "name": "Gemini 3.5 Flash (Low) (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "gemini-3.5-flash-low": {
-          "name": "Gemini 3.5 Flash (Medium) (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "gemini-3-flash-agent": {
-          "name": "Gemini 3.5 Flash (High) (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "gemini-3.5-flash-lite": {
-          "name": "Gemini 3.5 Flash-Lite (Antigravity)",
-          "limit": { "context": 1048576, "output": 65535 },
-          "reasoning": false,
-          "tool_call": true,
-          "modalities": { "input": ["text"], "output": ["text"] }
-        },
         "gemini-3.7-flash-high": {
           "name": "Gemini 3.7 Flash (High) (Antigravity)",
           "limit": { "context": 1048576, "output": 65536 },
@@ -119,6 +91,27 @@ cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plug
         "gemini-3.7-flash-low": {
           "name": "Gemini 3.7 Flash (Low) (Antigravity)",
           "limit": { "context": 1048576, "output": 65536 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "gemini-pro-agent": {
+          "name": "Gemini 3.1 Pro (High) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "gemini-3.1-pro-high": {
+          "name": "Gemini 3.1 Pro High (→ gemini-pro-agent)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "gemini-3.1-pro-low": {
+          "name": "Gemini 3.1 Pro (Low) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65535 },
           "reasoning": true,
           "tool_call": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
@@ -144,30 +137,37 @@ cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plug
           "tool_call": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
         },
-        "gemini-3-flash": {
-          "name": "Gemini 3 Flash (Antigravity)",
+        "gemini-3-flash-agent": {
+          "name": "Gemini 3.5 Flash (High) (Antigravity)",
           "limit": { "context": 1048576, "output": 65536 },
           "reasoning": true,
           "tool_call": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
         },
-        "gemini-3.1-pro-low": {
-          "name": "Gemini 3.1 Pro (Low) (Antigravity)",
-          "limit": { "context": 1048576, "output": 65535 },
+        "gemini-3.5-flash-low": {
+          "name": "Gemini 3.5 Flash (Medium) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
           "reasoning": true,
           "tool_call": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
         },
-        "gemini-pro-agent": {
-          "name": "Gemini 3.1 Pro (High) (Antigravity)",
-          "limit": { "context": 1048576, "output": 65535 },
+        "gemini-3.5-flash-extra-low": {
+          "name": "Gemini 3.5 Flash (Low) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
           "reasoning": true,
           "tool_call": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
         },
-        "gemini-3.1-pro-high": {
-          "name": "Gemini 3.1 Pro High (→ gemini-pro-agent)",
+        "gemini-3.5-flash-lite": {
+          "name": "Gemini 3.5 Flash-Lite (Antigravity)",
           "limit": { "context": 1048576, "output": 65535 },
+          "reasoning": false,
+          "tool_call": true,
+          "modalities": { "input": ["text"], "output": ["text"] }
+        },
+        "gemini-3-flash": {
+          "name": "Gemini 3 Flash (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
           "reasoning": true,
           "tool_call": true,
           "modalities": { "input": ["text", "image"], "output": ["text"] }
@@ -185,55 +185,6 @@ cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plug
           "reasoning": false,
           "tool_call": true,
           "modalities": { "input": ["text"], "output": ["text"] }
-        },
-        "gemini-2.5-pro": {
-          "name": "Gemini 2.5 Pro (Antigravity)",
-          "limit": { "context": 1048576, "output": 65535 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "claude-opus-4-6-thinking": {
-          "name": "Claude Opus 4.6 Thinking (Antigravity, experimental)",
-          "limit": { "context": 200000, "output": 128000 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "claude-opus-4-5-thinking": {
-          "name": "Claude Opus 4.5 Thinking (Antigravity, experimental)",
-          "limit": { "context": 200000, "output": 64000 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "claude-sonnet-4-6": {
-          "name": "Claude Sonnet 4.6 (Antigravity, experimental)",
-          "limit": { "context": 200000, "output": 64000 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "claude-sonnet-4-5-thinking": {
-          "name": "Claude Sonnet 4.5 Thinking (Antigravity, experimental)",
-          "limit": { "context": 200000, "output": 64000 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "claude-sonnet-4-5": {
-          "name": "Claude Sonnet 4.5 (Antigravity, experimental)",
-          "limit": { "context": 200000, "output": 64000 },
-          "reasoning": false,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
-        "gpt-oss-120b-medium": {
-          "name": "GPT-OSS 120B Medium (Antigravity, experimental)",
-          "limit": { "context": 131072, "output": 32768 },
-          "reasoning": false,
-          "tool_call": true,
-          "modalities": { "input": ["text"], "output": ["text"] }
         }
       }
     }
@@ -241,7 +192,7 @@ cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plug
 }
 ```
 
-> **Ghi chú:** Khối config trên (cũng chính là default `install.sh` merge) đăng ký đầy đủ **23 mô hình** (khớp catalog mục 9). Không cần dùng hết thì tự xóa bớt entry — model id nào nằm trong `provider.google-antigravity.models` mới hiện khi chạy `opencode models google-antigravity`.
+> **Ghi chú:** Khối config trên (cũng chính là default `install.sh` merge) đăng ký đầy đủ **16 mô hình** (khớp catalog mục 9). Không cần dùng hết thì tự xóa bớt entry — model id nào nằm trong `provider.google-antigravity.models` mới hiện khi chạy `opencode models google-antigravity`.
 
 ---
 
@@ -311,7 +262,7 @@ Trong giao diện TUI, chọn mô hình: `google-antigravity/gemini-3.7-flash-hi
 ```bash
 node --test test/*.test.js
 ```
-*(Bộ 21/21 unit tests phải pass. Cover: PKCE, OAuth URL, envelope wrapping, Claude tool sanitization, thinkingLevel mapping (incl. 3.7 MINIMAL→LOW floor), UA cli/sdk, SSE unwrap CRLF/LF, custom fetch v1internal rewrite, model catalog, sidecar 0600).*
+*(Bộ 26/26 unit tests phải pass. Cover: PKCE, OAuth URL, envelope wrapping, tool adapter & schema sanitization, thinkingLevel mapping (incl. 3.7 MINIMAL→LOW floor), UA cli/sdk/desktop, SSE unwrap CRLF/LF, custom fetch v1internal rewrite, model catalog, sidecar 0600).*
 
 ---
 
@@ -323,11 +274,11 @@ Plugin không đơn thuần thay API key — nó **chặn toàn bộ tầng fetc
 ```
 @ai-sdk/google  →  createAntigravityFetch (transport.js)
                    ├─ 1. resolveWireModelId(): alias `gemini-3.1-pro-high` → `gemini-pro-agent`
-                   ├─ 2. postProcessGeminiBody(): sanitize tools (Claude), inject thoughtSignature (Gemini 3)
+                   ├─ 2. postProcessGeminiBody(): sanitize tools & schema, inject thoughtSignature (Gemini 3)
                    ├─ 3. sanitizeGenerationConfig(): xóa thinkingBudget, set thinkingLevel HIGH/LOW/MINIMAL (gemini-3.7+ tự floor MINIMAL→LOW)
                    ├─ 4. injectAntigravitySystem(): chèn DeepMind System Instruction
                    ├─ 5. buildEnvelope(): wrap outer envelope {project, model, request, requestType, userAgent, requestId}
-                   ├─ 6. getAntigravityHeaders(): User-Agent + anthropic-beta (nếu Claude Thinking)
+                   ├─ 6. getAntigravityHeaders(): User-Agent (cli/sdk/desktop mode)
                    └─ 7. POST → /v1internal:streamGenerateContent?alt=sse
                                        ↓
                    unwrapSseResponseStream(): data: {"response": {...}} → data: {...}
@@ -358,34 +309,42 @@ Khi gặp HTTP 403/404 từ một endpoint, tự động chuyển endpoint tiế
 
 ---
 
-## 📚 9. Danh mục 23 Mô hình (Full Model Catalog)
+## 📚 9. Danh mục 16 Mô hình (Full Model Catalog)
 
-Plugin đăng ký 23 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js). Danh sách đầy đủ:
+Plugin đăng ký 16 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js), phân theo từng dòng thế hệ:
 
-| # | Model ID (OpenCode) | Wire Model ID | Reasoning | Modalities |
-|---|---|---|---|---|
-| 1 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | ✓ | text, image |
-| 2 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | ✓ | text, image |
-| 3 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | ✓ | text, image |
-| 4 | `gemini-3-flash` | `gemini-3-flash` | ✓ | text, image |
-| 5 | `gemini-pro-agent` | `gemini-pro-agent` | ✓ | text, image |
-| 6 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | ✓ | text, image |
-| 7 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | ✓ | text, image |
-| 8 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | ✓ | text, image |
-| 9 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | ✗ | text, image |
-| 10 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | ✗ | text, image |
-| 11 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | ✓ | text, image |
-| 12 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | ✓ | text, image |
-| 13 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | ✓ | text, image |
-| 14 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | ✗ | text |
-| 15 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | ✗ | text |
-| 16 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | ✗ | text |
-| 17 | `gemini-2.5-pro` | `gemini-2.5-pro` | ✓ | text, image |
-| 18 | `claude-opus-4-6-thinking` | `claude-opus-4-6-thinking` | ✓ | text, image |
-| 19 | `claude-opus-4-5-thinking` | `claude-opus-4-5-thinking` | ✓ | text, image |
-| 20 | `claude-sonnet-4-6` | `claude-sonnet-4-6` | ✓ | text, image |
-| 21 | `claude-sonnet-4-5-thinking` | `claude-sonnet-4-5-thinking` | ✓ | text, image |
-| 22 | `claude-sonnet-4-5` | `claude-sonnet-4-5` | ✗ | text, image |
-| 23 | `gpt-oss-120b-medium` | `gpt-oss-120b-medium` | ✗ | text |
+### 🌟 Dòng Gemini 3.7 Flash (Mới nhất, Thinking mặc định)
+| # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
+|---|---|---|---|---|---|
+| 1 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 2 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
+| 3 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | `LOW` | 1M / 64k | text, image |
 
-*Mô hình Claude/GPT-OSS là experimental — Google có thể thay đổi đường wire bất cứ lúc nào.*
+### 🧠 Dòng Gemini 3.1 Pro (Agentic Coding & Suy luận sâu)
+| # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
+|---|---|---|---|---|---|
+| 4 | `gemini-pro-agent` | `gemini-pro-agent` | `HIGH` | 1M / 64k | text, image |
+| 5 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | `HIGH` | 1M / 64k | text, image |
+| 6 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | `LOW` | 1M / 64k | text, image |
+
+### ⚡ Dòng Gemini 3.6 Flash
+| # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
+|---|---|---|---|---|---|
+| 7 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 8 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | *Tắt (false)* | 1M / 64k | text, image |
+| 9 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | *Tắt (false)* | 1M / 64k | text, image |
+
+### 🚀 Dòng Gemini 3.5 Flash
+| # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
+|---|---|---|---|---|---|
+| 10 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | `HIGH` | 1M / 64k | text, image |
+| 11 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | `MEDIUM` | 1M / 64k | text, image |
+| 12 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | `LOW` | 1M / 64k | text, image |
+| 13 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | *Tắt (false)* | 1M / 64k | text |
+
+### 🎯 Dòng Gemini 3 Flash & 3.1 Flash Phụ trợ
+| # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
+|---|---|---|---|---|---|
+| 14 | `gemini-3-flash` | `gemini-3-flash` | `MINIMAL` | 1M / 64k | text, image |
+| 15 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | *Tắt (false)* | 1M / 64k | text |
+| 16 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | *Tắt (false)* | 1M / 64k | text |

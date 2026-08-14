@@ -47,29 +47,31 @@ if (!Array.isArray(cfg.plugin)) cfg.plugin = [];
 if (!cfg.plugin.includes(entry)) cfg.plugin.push(entry);
 
 const MODELS = {
-  "gemini-3.5-flash-extra-low": { name: "Gemini 3.5 Flash (Low) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "gemini-3.5-flash-low": { name: "Gemini 3.5 Flash (Medium) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "gemini-3-flash-agent": { name: "Gemini 3.5 Flash (High) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "gemini-3.5-flash-lite": { name: "Gemini 3.5 Flash-Lite (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } },
+  // Gemini 3.7 Flash
   "gemini-3.7-flash-high": { name: "Gemini 3.7 Flash (High) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.7-flash-medium": { name: "Gemini 3.7 Flash (Medium) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.7-flash-low": { name: "Gemini 3.7 Flash (Low) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+
+  // Gemini 3.1 Pro (Agent)
+  "gemini-pro-agent": { name: "Gemini 3.1 Pro (High) (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.1-pro-high": { name: "Gemini 3.1 Pro High (→ gemini-pro-agent)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.1-pro-low": { name: "Gemini 3.1 Pro (Low) (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+
+  // Gemini 3.6 Flash
   "gemini-3.6-flash-high": { name: "Gemini 3.6 Flash (High) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.6-flash-medium": { name: "Gemini 3.6 Flash (Medium) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: false, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.6-flash-low": { name: "Gemini 3.6 Flash (Low) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: false, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+
+  // Gemini 3.5 Flash
+  "gemini-3-flash-agent": { name: "Gemini 3.5 Flash (High) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.5-flash-low": { name: "Gemini 3.5 Flash (Medium) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.5-flash-extra-low": { name: "Gemini 3.5 Flash (Low) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.5-flash-lite": { name: "Gemini 3.5 Flash-Lite (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } },
+
+  // Gemini 3 Flash & 3.1 Flash
   "gemini-3-flash": { name: "Gemini 3 Flash (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "gemini-3.1-pro-low": { name: "Gemini 3.1 Pro (Low) (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "gemini-pro-agent": { name: "Gemini 3.1 Pro (High) (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "gemini-3.1-pro-high": { name: "Gemini 3.1 Pro High (→ gemini-pro-agent)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.1-flash-lite": { name: "Gemini 3.1 Flash Lite (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } },
-  "gemini-3.1-flash-image": { name: "Gemini 3.1 Flash Image (Antigravity)", limit: { context: 1000000, output: 64000 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } },
-  "gemini-2.5-pro": { name: "Gemini 2.5 Pro (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "claude-opus-4-6-thinking": { name: "Claude Opus 4.6 Thinking (Antigravity, experimental)", limit: { context: 200000, output: 128000 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "claude-opus-4-5-thinking": { name: "Claude Opus 4.5 Thinking (Antigravity, experimental)", limit: { context: 200000, output: 64000 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "claude-sonnet-4-6": { name: "Claude Sonnet 4.6 (Antigravity, experimental)", limit: { context: 200000, output: 64000 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "claude-sonnet-4-5-thinking": { name: "Claude Sonnet 4.5 Thinking (Antigravity, experimental)", limit: { context: 200000, output: 64000 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "claude-sonnet-4-5": { name: "Claude Sonnet 4.5 (Antigravity, experimental)", limit: { context: 200000, output: 64000 }, reasoning: false, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
-  "gpt-oss-120b-medium": { name: "GPT-OSS 120B Medium (Antigravity, experimental)", limit: { context: 131072, output: 32768 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } }
+  "gemini-3.1-flash-image": { name: "Gemini 3.1 Flash Image (Antigravity)", limit: { context: 1000000, output: 64000 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } }
 };
 
 cfg.provider = cfg.provider || {};

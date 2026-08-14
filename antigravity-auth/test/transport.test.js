@@ -184,14 +184,14 @@ describe("transport", () => {
     assert.ok(extractRetryDelay("", { headers }) >= 3000);
   });
 
-  it("catalog has full OpenClaw set", () => {
+  it("catalog has active Gemini models", () => {
     const ids = Object.keys(ANTIGRAVITY_MODEL_CATALOG);
     for (const need of [
       "gemini-3-flash",
       "gemini-3.1-pro-high",
-      "claude-opus-4-6-thinking",
-      "claude-sonnet-4-5",
-      "gpt-oss-120b-medium",
+      "gemini-3.7-flash-high",
+      "gemini-pro-agent",
+      "gemini-3.5-flash-low",
     ]) {
       assert.ok(ids.includes(need), `missing ${need}`);
     }
