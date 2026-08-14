@@ -59,6 +59,25 @@ export function isGemini3Model(modelId) {
   return id.includes("gemini-3");
 }
 
+export function isGemini3High(modelId) {
+  const id = String(modelId || "").toLowerCase();
+  return (
+    id === "gemini-pro-agent" ||
+    id === "gemini-3-flash-agent" ||
+    (id.includes("gemini-3") && id.includes("high"))
+  );
+}
+
+export function isGemini3Medium(modelId) {
+  const id = String(modelId || "").toLowerCase();
+  return id.includes("gemini-3") && id.includes("medium");
+}
+
+export function isGemini3Low(modelId) {
+  const id = String(modelId || "").toLowerCase();
+  return id.includes("gemini-3") && (id.includes("low") || id.includes("extra-low"));
+}
+
 export function isGeminiProHigh(modelId) {
   const id = String(modelId || "").toLowerCase();
   return id === "gemini-pro-agent" || (id.includes("gemini-3") && id.includes("pro") && id.includes("high"));
@@ -67,6 +86,13 @@ export function isGeminiProHigh(modelId) {
 export function isGeminiProLow(modelId) {
   const id = String(modelId || "").toLowerCase();
   return id.includes("gemini-3") && id.includes("pro") && id.includes("low");
+}
+
+export function getDefaultThinkingLevel(modelId) {
+  if (isGemini3High(modelId)) return "HIGH";
+  if (isGemini3Medium(modelId)) return "MEDIUM";
+  if (isGemini3Low(modelId)) return "LOW";
+  return isMinimalThinkingSupported(modelId) ? "MINIMAL" : "LOW";
 }
 
 /**
@@ -239,46 +265,40 @@ export function injectAntigravitySystem(geminiBody) {
 export function sanitizeGenerationConfig(generationConfig, modelId) {
   if (!generationConfig || typeof generationConfig !== "object") return generationConfig;
   const id = String(modelId || "").toLowerCase();
-  const isProHigh = isGeminiProHigh(modelId);
-  const isProLow = isGeminiProLow(modelId);
-  const isPro =
-    isProHigh || isProLow || (id.includes("gemini") && id.includes("pro") && !id.includes("flash"));
-  const isFlash =
-    id.includes("flash") || id.includes("flash-agent") || id.includes("flash-lite") || id.includes("flash-image");
-  const isGemini3 = isGemini3Model(modelId) || isProHigh;
+  const isGemini3 = isGemini3Model(modelId) || isGeminiProHigh(modelId);
   if (!isGemini3 && !id.includes("gemini-3") && id !== "gemini-pro-agent") return generationConfig;
 
   const next = { ...generationConfig };
   delete next.thinkingBudget;
+
+  const defaultLevel = getDefaultThinkingLevel(modelId);
+
   if (next.thinkingConfig && typeof next.thinkingConfig === "object") {
     const tc = { ...next.thinkingConfig };
     delete tc.thinkingBudget;
-    if (isProHigh) {
-      tc.thinkingLevel = "HIGH";
-      tc.includeThoughts = tc.includeThoughts !== false;
-    } else if (isProLow) {
-      tc.thinkingLevel = "LOW";
-      tc.includeThoughts = tc.includeThoughts !== false;
-    } else if (isPro) {
-      if (!tc.thinkingLevel) tc.thinkingLevel = "HIGH";
-      tc.includeThoughts = tc.includeThoughts !== false;
-    } else if (isFlash) {
-      if (!tc.thinkingLevel) {
-        tc.thinkingLevel = isMinimalThinkingSupported(modelId) ? "MINIMAL" : "LOW";
-      }
-      if (tc.includeThoughts === undefined) tc.includeThoughts = true;
+    if (!tc.thinkingLevel) {
+      tc.thinkingLevel = defaultLevel;
     }
     if (typeof tc.thinkingLevel === "string") {
       tc.thinkingLevel = tc.thinkingLevel.toUpperCase();
       if (tc.thinkingLevel === "MIN") tc.thinkingLevel = "MINIMAL";
-      if (tc.thinkingLevel === "MINIMAL" && !isMinimalThinkingSupported(modelId)) tc.thinkingLevel = "LOW";
+      if (tc.thinkingLevel === "MED") tc.thinkingLevel = "MEDIUM";
+      if (tc.thinkingLevel === "MINIMAL" && !isMinimalThinkingSupported(modelId)) {
+        tc.thinkingLevel = "LOW";
+      }
+    }
+    if (tc.includeThoughts === undefined) {
+      tc.includeThoughts = true;
     }
     next.thinkingConfig = tc;
-  } else if (isProHigh || isProLow || isPro) {
-    next.thinkingConfig = {
-      includeThoughts: true,
-      thinkingLevel: isProLow ? "LOW" : "HIGH",
-    };
+  } else if (isGemini3) {
+    const catalogEntry = ANTIGRAVITY_MODEL_CATALOG[modelId];
+    if (!catalogEntry || catalogEntry.reasoning !== false) {
+      next.thinkingConfig = {
+        includeThoughts: true,
+        thinkingLevel: defaultLevel,
+      };
+    }
   }
   return next;
 }
@@ -289,7 +309,7 @@ export function postProcessGeminiBody(geminiBody, modelId) {
   if (body.contents) body.contents = postProcessContents(body.contents, modelId);
   if (body.generationConfig) {
     body.generationConfig = sanitizeGenerationConfig(body.generationConfig, modelId);
-  } else if (isGeminiProHigh(modelId) || isGeminiProLow(modelId)) {
+  } else if (isGemini3Model(modelId) || isGeminiProHigh(modelId) || isGeminiProLow(modelId)) {
     body.generationConfig = sanitizeGenerationConfig({}, modelId);
   }
   return body;

@@ -214,23 +214,37 @@ describe("transport", () => {
     assert.equal(env.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
   });
 
-  it("floors gemini-3.7 flash thinkingLevel to LOW (backend rejects MINIMAL)", () => {
+  it("sanitizeGenerationConfig maps thinking level per model variant and floors 3.7 MINIMAL", () => {
     assert.equal(isMinimalThinkingSupported("gemini-3.6-flash-high"), true);
     assert.equal(isMinimalThinkingSupported("gemini-3.7-flash-high"), false);
     assert.equal(isMinimalThinkingSupported("gemini-4-flash"), false);
 
-    // OpenCode sends thinkingBudget for reasoning models -> plugin used to force MINIMAL (400 on 3.7)
-    const t37 = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.7-flash-high");
-    assert.equal(t37.thinkingConfig.thinkingLevel, "LOW");
-    assert.equal(t37.thinkingConfig.thinkingBudget, undefined);
+    // gemini-3.7-flash-high maps to HIGH
+    const t37High = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.7-flash-high");
+    assert.equal(t37High.thinkingConfig.thinkingLevel, "HIGH");
+    assert.equal(t37High.thinkingConfig.thinkingBudget, undefined);
 
-    // explicit MINIMAL on 3.7 also bumped to LOW
+    // gemini-3.7-flash-medium maps to MEDIUM
+    const t37Med = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.7-flash-medium");
+    assert.equal(t37Med.thinkingConfig.thinkingLevel, "MEDIUM");
+    assert.equal(t37Med.thinkingConfig.thinkingBudget, undefined);
+
+    // gemini-3.7-flash-low maps to LOW
+    const t37Low = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.7-flash-low");
+    assert.equal(t37Low.thinkingConfig.thinkingLevel, "LOW");
+    assert.equal(t37Low.thinkingConfig.thinkingBudget, undefined);
+
+    // explicit MINIMAL on 3.7 bumped to LOW (backend rejects MINIMAL)
     const explicit = sanitizeGenerationConfig({ thinkingConfig: { thinkingLevel: "minimal" } }, "gemini-3.7-flash-low");
     assert.equal(explicit.thinkingConfig.thinkingLevel, "LOW");
 
-    // 3.6 keeps MINIMAL (supported)
-    const t36 = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.6-flash-high");
-    assert.equal(t36.thinkingConfig.thinkingLevel, "MINIMAL");
+    // 3.6 flash high maps to HIGH
+    const t36High = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.6-flash-high");
+    assert.equal(t36High.thinkingConfig.thinkingLevel, "HIGH");
+
+    // generic 3-flash defaults to MINIMAL (supported on 3.0-3.6)
+    const t3Flash = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3-flash");
+    assert.equal(t3Flash.thinkingConfig.thinkingLevel, "MINIMAL");
   });
 
   it("unwraps SSE response envelope incrementally", async () => {
