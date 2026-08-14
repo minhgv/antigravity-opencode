@@ -218,7 +218,15 @@ export function startCallbackServer(port = 51121, host = "127.0.0.1") {
     server.listen(port, host, () => {
       resolve({
         waitForCode: () => waitForCodePromise,
-        close: () => server.close(),
+        close: () => {
+          settle(null);
+          try {
+            server.close();
+            server.closeAllConnections?.();
+          } catch {
+            // best-effort
+          }
+        },
       });
     });
   });

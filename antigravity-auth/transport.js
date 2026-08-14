@@ -50,7 +50,7 @@ export function isClaudeModel(modelId) {
 
 export function isClaudeThinkingModel(modelId) {
   const id = String(modelId || "");
-  return id.startsWith("claude-") && id.includes("thinking");
+  return id.startsWith("claude-") && (id.includes("thinking") || ANTIGRAVITY_MODEL_CATALOG[id]?.reasoning === true);
 }
 
 export function isGemini3Model(modelId) {
@@ -192,6 +192,7 @@ export function postProcessContents(contents, modelId) {
   const gemini3 = isGemini3Model(modelId);
   const needIds = requiresToolCallId(modelId);
   let toolCounter = 0;
+  const lastToolCallIds = new Map();
 
   return contents
     .map((content) => {
@@ -217,17 +218,21 @@ export function postProcessContents(contents, modelId) {
           if (needIds) {
             const raw = fc.id || `${fc.name || "tool"}_${Date.now()}_${++toolCounter}`;
             fc.id = normalizeToolCallId(raw);
+            if (fc.name) {
+              lastToolCallIds.set(fc.name, fc.id);
+            }
           }
           next.functionCall = fc;
-          if (gemini3 && !next.thoughtSignature) {
+          if (gemini3 && !next.thoughtSignature && !fc.thoughtSignature) {
             next.thoughtSignature = SKIP_THOUGHT_SIGNATURE;
           }
         }
 
         if (next.functionResponse && typeof next.functionResponse === "object") {
           const fr = { ...next.functionResponse };
-          if (needIds && fr.id) {
-            fr.id = normalizeToolCallId(fr.id);
+          if (needIds) {
+            const resolvedId = fr.id || lastToolCallIds.get(fr.name) || fr.name || "tool";
+            fr.id = normalizeToolCallId(resolvedId);
           }
           next.functionResponse = fr;
         }
@@ -341,8 +346,14 @@ export function buildEnvelope(geminiBody, opts) {
 export function extractModelIdFromUrl(urlString) {
   try {
     const u = new URL(urlString);
-    const m = u.pathname.match(/\/models\/([^/:]+)/);
-    return m?.[1];
+    const decodedPath = decodeURIComponent(u.pathname);
+    const m = decodedPath.match(/\/models\/([^:]+)/);
+    if (!m?.[1]) return undefined;
+    let modelId = m[1].replace(/:(?:streamGenerateContent|generateContent)$/, "");
+    if (modelId.startsWith("google-antigravity/")) {
+      modelId = modelId.slice("google-antigravity/".length);
+    }
+    return modelId;
   } catch {
     return undefined;
   }
@@ -462,10 +473,11 @@ export function unwrapSseResponseStream(body) {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = "";
+  let reader = null;
 
   return new ReadableStream({
     async start(controller) {
-      const reader = body.getReader();
+      reader = body.getReader();
       try {
         while (true) {
           const { done, value } = await reader.read();
@@ -496,13 +508,23 @@ export function unwrapSseResponseStream(body) {
         controller.error(err);
       } finally {
         try {
-          reader.releaseLock();
+          reader?.releaseLock();
         } catch {
           /* ignore */
         }
       }
     },
-    async cancel() {},
+    async cancel(reason) {
+      try {
+        if (reader) {
+          await reader.cancel(reason);
+        } else {
+          await body.cancel(reason);
+        }
+      } catch {
+        /* ignore */
+      }
+    },
   });
 }
 
@@ -511,9 +533,9 @@ export function createAntigravityFetch(deps) {
 
   return async function antigravityFetch(input, init = {}) {
     const urlString =
-      typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      typeof input === "string" ? input : input instanceof URL ? input.toString() : input?.url;
 
-    if (!isGoogleGenerativeUrl(urlString)) {
+    if (!urlString || !isGoogleGenerativeUrl(urlString)) {
       return baseFetch(input, init);
     }
 
@@ -522,7 +544,7 @@ export function createAntigravityFetch(deps) {
       return baseFetch(input, init);
     }
 
-    const signal = init.signal;
+    const signal = init.signal || (typeof input === "object" && input !== null ? input.signal : undefined);
     const stream = isStreamUrl(urlString);
 
     let bodyText = "";
@@ -535,6 +557,12 @@ export function createAntigravityFetch(deps) {
         throw new Error("Antigravity adapter requires buffered request body (got stream)");
       } else {
         bodyText = String(init.body);
+      }
+    } else if (typeof input === "object" && input !== null && typeof input.text === "function") {
+      try {
+        bodyText = await input.clone().text();
+      } catch {
+        // ignore
       }
     }
 
@@ -568,8 +596,9 @@ export function createAntigravityFetch(deps) {
       const envelopeJson = JSON.stringify(envelope);
 
       const headers = new Headers();
-      if (init.headers) {
-        const h = new Headers(init.headers);
+      const rawHeaders = init.headers || (typeof input === "object" && input !== null && input.headers ? input.headers : undefined);
+      if (rawHeaders) {
+        const h = new Headers(rawHeaders);
         h.forEach((v, k) => {
           const lk = k.toLowerCase();
           if (lk === "x-goog-api-key" || lk === "authorization") return;
@@ -606,6 +635,7 @@ export function createAntigravityFetch(deps) {
 
           if (response.status === 401 && attempt < MAX_RETRIES) {
             lastError = new Error("Antigravity 401 unauthorized — refreshing token");
+            await deps.getAccessToken({ forceRefresh: true }).catch(() => null);
             await sleep(200, signal);
             break;
           }

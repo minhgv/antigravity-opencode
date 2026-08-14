@@ -353,6 +353,125 @@ describe("transport", () => {
     assert.match(text, /"text":"ok"/);
     assert.doesNotMatch(text, /"response":/);
   });
+
+  it("handles 401 with forceRefresh token recovery", async () => {
+    let tokenCalls = 0;
+    const tokens = ["expired-token", "fresh-token"];
+    let requestCount = 0;
+
+    const mockFetch = async (url, init) => {
+      requestCount++;
+      const authHeader = init?.headers?.get("Authorization") || "";
+      if (authHeader.includes("expired-token")) {
+        return new Response(JSON.stringify({ error: { code: 401, message: "Unauthorized" } }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ response: { candidates: [{ content: { parts: [{ text: "success" }] } }] } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    const fetchImpl = createAntigravityFetch({
+      getAccessToken: async (opts) => {
+        if (opts?.forceRefresh) {
+          return tokens[1];
+        }
+        return tokenCalls++ === 0 ? tokens[0] : tokens[1];
+      },
+      getProjectId: async () => "proj-x",
+      fetchImpl: mockFetch,
+    });
+
+    const res = await fetchImpl(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent",
+      {
+        method: "POST",
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }),
+      },
+    );
+
+    assert.equal(res.status, 200);
+    assert.equal(requestCount, 2);
+    const text = await res.text();
+    assert.match(text, /"text":"success"/);
+  });
+
+  it("matches missing tool response ids for Claude models", () => {
+    const contents = [
+      {
+        role: "model",
+        parts: [{ functionCall: { name: "readFile", args: { path: "a.txt" } } }],
+      },
+      {
+        role: "user",
+        parts: [{ functionResponse: { name: "readFile", response: { content: "data" } } }],
+      },
+    ];
+    const out = postProcessContents(contents, "claude-sonnet-4-5");
+    const fcId = out[0].parts[0].functionCall.id;
+    const frId = out[1].parts[0].functionResponse.id;
+    assert.ok(fcId);
+    assert.equal(frId, fcId);
+  });
+
+  it("extractModelIdFromUrl handles encoded chars and provider prefix", () => {
+    assert.equal(
+      extractModelIdFromUrl("https://generativelanguage.googleapis.com/v1beta/models/google-antigravity/gemini-3.7-flash-high:streamGenerateContent"),
+      "gemini-3.7-flash-high",
+    );
+    assert.equal(
+      extractModelIdFromUrl("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash-high%3AstreamGenerateContent"),
+      "gemini-3.7-flash-high",
+    );
+  });
+
+  it("propagates cancel to underlying SSE stream body", async () => {
+    let cancelledWithReason = null;
+    const underlying = new ReadableStream({
+      start() {},
+      cancel(reason) {
+        cancelledWithReason = reason;
+      },
+    });
+    const wrapped = unwrapSseResponseStream(underlying);
+    await wrapped.cancel("user aborted");
+    assert.equal(cancelledWithReason, "user aborted");
+  });
+
+  it("supports Request object as input with buffered body", async () => {
+    let capturedBody = null;
+    const mockFetch = async (url, init) => {
+      capturedBody = init?.body;
+      return new Response(JSON.stringify({ response: { text: "ok" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    };
+
+    const fetchImpl = createAntigravityFetch({
+      getAccessToken: async () => "token-x",
+      getProjectId: async () => "proj-x",
+      fetchImpl: mockFetch,
+    });
+
+    const req = new Request(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent",
+      {
+        method: "POST",
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "via-request-object" }] }] }),
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+
+    const res = await fetchImpl(req);
+    assert.equal(res.status, 200);
+    assert.ok(capturedBody);
+    const parsed = JSON.parse(capturedBody);
+    assert.equal(parsed.request.contents[0].parts[0].text, "via-request-object");
+  });
 });
 
 describe("store sidecar", () => {

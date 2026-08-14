@@ -34,7 +34,7 @@ export function writeMeta(patch, path = metaPath()) {
     updatedAt: Date.now(),
   };
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, JSON.stringify(next, null, 2), "utf8");
+  writeFileSync(path, JSON.stringify(next, null, 2), { encoding: "utf8", mode: 0o600 });
   try {
     chmodSync(path, 0o600);
   } catch {

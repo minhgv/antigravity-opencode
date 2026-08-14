@@ -23,12 +23,12 @@ const OAUTH_DUMMY_KEY = "opencode-oauth-dummy-key";
  * @type {import('@opencode-ai/plugin').Plugin}
  */
 export default async function GoogleAntigravityAuthPlugin(ctx) {
-  const { client } = ctx;
+  const { client } = ctx || {};
 
   // Single-flight refresh so parallel tool/stream requests don't stampede token endpoint
   let refreshInFlight = null;
 
-  async function ensureFreshAuth(getAuth) {
+  async function ensureFreshAuth(getAuth, forceRefresh = false) {
     const auth = await getAuth();
     if (!auth || auth.type !== "oauth") return null;
 
@@ -38,7 +38,7 @@ export default async function GoogleAntigravityAuthPlugin(ctx) {
 
     if (!access || !refresh) return null;
 
-    if (!expires || expires < Date.now()) {
+    if (forceRefresh || !expires || expires < Date.now()) {
       if (!refreshInFlight) {
         refreshInFlight = (async () => {
           try {
@@ -46,17 +46,19 @@ export default async function GoogleAntigravityAuthPlugin(ctx) {
             const nextAccess = json.access_token;
             const nextRefresh = json.refresh_token || refresh;
             const nextExpires = toExpires(json.expires_in ?? 3600);
-            await client.auth.set({
-              path: { id: PROVIDER_ID },
-              body: {
-                type: "oauth",
-                access: nextAccess,
-                refresh: nextRefresh,
-                expires: nextExpires,
-                accountId: auth.accountId,
-                enterpriseUrl: auth.enterpriseUrl,
-              },
-            });
+            if (client?.auth?.set) {
+              await client.auth.set({
+                path: { id: PROVIDER_ID },
+                body: {
+                  type: "oauth",
+                  access: nextAccess,
+                  refresh: nextRefresh,
+                  expires: nextExpires,
+                  accountId: auth.accountId,
+                  enterpriseUrl: auth.enterpriseUrl,
+                },
+              });
+            }
             return {
               access: nextAccess,
               refresh: nextRefresh,
@@ -99,8 +101,8 @@ export default async function GoogleAntigravityAuthPlugin(ctx) {
         if (!fresh) return {};
 
         const fetchImpl = createAntigravityFetch({
-          getAccessToken: async () => {
-            const again = await ensureFreshAuth(getAuth);
+          getAccessToken: async (opts) => {
+            const again = await ensureFreshAuth(getAuth, opts?.forceRefresh);
             if (!again?.access) throw new Error("Antigravity access token missing");
             return again.access;
           },
