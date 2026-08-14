@@ -136,6 +136,8 @@ cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plug
 }
 ```
 
+> **Ghi chú:** Khối config trên (cũng chính là default `install.sh` merge) là tập tinh gọn **8 mô hình phổ biến nhất**. Plugin hỗ trợ đầy đủ **23 mô hình** (xem catalog mục 9). Muốn dùng mô hình khác, thêm id tương ứng vào `provider.google-antigravity.models` rồi chạy `opencode models google-antigravity` để xác nhận.
+
 ---
 
 ## 🔑 3. Đăng nhập và Xác thực OAuth
@@ -148,7 +150,7 @@ Sau khi hoàn tất cấu hình:
    ```
 2. Danh sách các Provider sẽ hiển thị. Chọn **`Google Antigravity (browser)`**.
 3. Trình duyệt web sẽ tự động mở trang đăng nhập Google. Hãy đăng nhập tài khoản Google Antigravity của bạn và bấm **Cho phép (Allow)**.
-4. Trình duyệt hiển thị thông báo thành công: *"Google Antigravity authentication completed. You can close this window."*
+4. Trình duyệt hiển thị thông báo thành công: *"Google Antigravity authentication completed. You can close this window and return to OpenCode."*
 5. Quay lại Terminal, OpenCode xác nhận đã lưu thông tin xác thực vào `~/.local/share/opencode/auth.json`.
 
 ---
@@ -164,7 +166,7 @@ opencode models google-antigravity
 ```bash
 opencode
 ```
-Trong giao diện TUI, chọn mô hình: `google-antigravity/gemini-3-flash` hoặc `google-antigravity/gemini-pro-agent`.
+Trong giao diện TUI, chọn mô hình: `google-antigravity/gemini-3.7-flash-high` (mới nhất), `google-antigravity/gemini-3-flash` hoặc `google-antigravity/gemini-pro-agent`.
 
 ---
 
@@ -198,7 +200,7 @@ Trong giao diện TUI, chọn mô hình: `google-antigravity/gemini-3-flash` ho�
 ```bash
 node --test test/*.test.js
 ```
-*(Bộ 20/20 unit tests phải pass. Cover: PKCE, OAuth URL, envelope wrapping, Claude tool sanitization, thinkingLevel mapping, SSE unwrap CRLF/LF, custom fetch v1internal rewrite, sidecar 0600).*
+*(Bộ 20/20 unit tests phải pass. Cover: PKCE, OAuth URL, envelope wrapping, Claude tool sanitization, thinkingLevel mapping, UA cli/sdk, SSE unwrap CRLF/LF, custom fetch v1internal rewrite, model catalog, sidecar 0600).*
 
 ---
 
@@ -213,7 +215,7 @@ Plugin không đơn thuần thay API key — nó **chặn toàn bộ tầng fetc
                    ├─ 2. postProcessGeminiBody(): sanitize tools (Claude), inject thoughtSignature (Gemini 3)
                    ├─ 3. sanitizeGenerationConfig(): xóa thinkingBudget, set thinkingLevel HIGH/LOW/MINIMAL
                    ├─ 4. injectAntigravitySystem(): chèn DeepMind System Instruction
-                   ├─ 5. buildEnvelope(): wrap outer envelope {project, model, request, requestType, requestId}
+                   ├─ 5. buildEnvelope(): wrap outer envelope {project, model, request, requestType, userAgent, requestId}
                    ├─ 6. getAntigravityHeaders(): User-Agent + anthropic-beta (nếu Claude Thinking)
                    └─ 7. POST → /v1internal:streamGenerateContent?alt=sse
                                        ↓
@@ -221,10 +223,10 @@ Plugin không đơn thuần thay API key — nó **chặn toàn bộ tầng fetc
 ```
 
 ### Endpoint Fallback Chain
-Code thử lần lượt 3 endpoint Google (xử lý trường hợp sandbox bị nghẽn):
-1. `https://daily-cloudcode-pa.sandbox.googleapis.com` (mặc định)
+Code thử lần lượt 3 endpoint Google (bắt đầu từ sandbox daily, fallback khi gặp 403/404):
+1. `https://daily-cloudcode-pa.sandbox.googleapis.com` (thử trước tiên)
 2. `https://autopush-cloudcode-pa.sandbox.googleapis.com`
-3. `https://cloudcode-pa.googleapis.com` (production fallback)
+3. `https://cloudcode-pa.googleapis.com` (production — `DEFAULT_ENDPOINT`, fallback cuối)
 
 Khi gặp HTTP 403/404 từ một endpoint, tự động chuyển endpoint tiếp theo.
 
@@ -245,7 +247,7 @@ Khi gặp HTTP 403/404 từ một endpoint, tự động chuyển endpoint tiế
 
 ---
 
-## 📚 9. Danh mục 20 Mô hình (Full Model Catalog)
+## 📚 9. Danh mục 23 Mô hình (Full Model Catalog)
 
 Plugin đăng ký 23 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js). Danh sách đầy đủ:
 
