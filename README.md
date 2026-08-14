@@ -171,10 +171,10 @@ Trong giao diện TUI, chọn mô hình: `google-antigravity/gemini-3-flash` ho�
 ## ⚙️ 5. Biến Môi trường Tùy chỉnh (Tùy chọn)
 
 - `OPENCODE_AGY_INJECT_SYSTEM=0`: Tắt tự động thêm System Prompt Antigravity mặc định.
-- `PI_AI_ANTIGRAVITY_VERSION`: Ghi đè phiên bản User-Agent Antigravity (Mặc định: `1.21.9`).
-- `OPENCODE_AGY_UA_MODE`: Chế độ User-Agent ngụy trang. Giá trị:
-  - `sdk` (mặc định): `antigravity/<ver> <platform>/<arch>`
-  - `cli`: `agy/<ver> <platform>/<arch>` (mặc định `1.1.5`)
+- `PI_AI_ANTIGRAVITY_VERSION`: Ghi đè phiên bản User-Agent Antigravity (mặc định theo mode).
+- `OPENCODE_AGY_UA_MODE`: Chế độ User-Agent. Giá trị:
+  - `cli` (mặc định): `antigravity/cli/<ver> (aidev_client; os_type=...; arch=...; auth_method=consumer)` (mặc định `1.1.13`) — **bắt buộc để backend cấp model mới nhất (gemini-3.7-flash); UA `sdk`/`desktop` bị backend trả 404**
+  - `sdk`: `antigravity/<ver> <platform>/<arch>` (mặc định `1.21.9`)
   - `desktop`: `Antigravity/<ver> <platform>/<arch>` (mặc định `2.2.1`)
 - `OPENCODE_AGY_DEBUG=1`: Bật ghi log chi tiết request/response vào thư mục tạm `/tmp/agy-debug-*.json` khi gặp lỗi 400/500. Log tự động loại bỏ token/nội dung nhạy cảm — chỉ ghi `status`, `modelId`, `endpoint`, `envelopeKeys`, `generationConfig`, `toolsCount`, `contentsRoles`.
 
@@ -247,29 +247,32 @@ Khi gặp HTTP 403/404 từ một endpoint, tự động chuyển endpoint tiế
 
 ## 📚 9. Danh mục 20 Mô hình (Full Model Catalog)
 
-Plugin đăng ký 20 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js). Danh sách đầy đủ:
+Plugin đăng ký 23 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js). Danh sách đầy đủ:
 
 | # | Model ID (OpenCode) | Wire Model ID | Reasoning | Modalities |
 |---|---|---|---|---|
-| 1 | `gemini-3-flash` | `gemini-3-flash` | ✓ | text, image |
-| 2 | `gemini-pro-agent` | `gemini-pro-agent` | ✓ | text, image |
-| 3 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | ✓ | text, image |
-| 4 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | ✓ | text, image |
-| 5 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | ✓ | text, image |
-| 6 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | ✗ | text, image |
-| 7 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | ✗ | text, image |
-| 8 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | ✓ | text, image |
-| 9 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | ✓ | text, image |
-| 10 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | ✓ | text, image |
-| 11 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | ✗ | text |
-| 12 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | ✗ | text |
-| 13 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | ✗ | text |
-| 14 | `gemini-2.5-pro` | `gemini-2.5-pro` | ✓ | text, image |
-| 15 | `claude-opus-4-6-thinking` | `claude-opus-4-6-thinking` | ✓ | text, image |
-| 16 | `claude-opus-4-5-thinking` | `claude-opus-4-5-thinking` | ✓ | text, image |
-| 17 | `claude-sonnet-4-6` | `claude-sonnet-4-6` | ✓ | text, image |
-| 18 | `claude-sonnet-4-5-thinking` | `claude-sonnet-4-5-thinking` | ✓ | text, image |
-| 19 | `claude-sonnet-4-5` | `claude-sonnet-4-5` | ✗ | text, image |
-| 20 | `gpt-oss-120b-medium` | `gpt-oss-120b-medium` | ✗ | text |
+| 1 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | ✓ | text, image |
+| 2 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | ✓ | text, image |
+| 3 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | ✓ | text, image |
+| 4 | `gemini-3-flash` | `gemini-3-flash` | ✓ | text, image |
+| 5 | `gemini-pro-agent` | `gemini-pro-agent` | ✓ | text, image |
+| 6 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | ✓ | text, image |
+| 7 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | ✓ | text, image |
+| 8 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | ✓ | text, image |
+| 9 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | ✗ | text, image |
+| 10 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | ✗ | text, image |
+| 11 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | ✓ | text, image |
+| 12 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | ✓ | text, image |
+| 13 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | ✓ | text, image |
+| 14 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | ✗ | text |
+| 15 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | ✗ | text |
+| 16 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | ✗ | text |
+| 17 | `gemini-2.5-pro` | `gemini-2.5-pro` | ✓ | text, image |
+| 18 | `claude-opus-4-6-thinking` | `claude-opus-4-6-thinking` | ✓ | text, image |
+| 19 | `claude-opus-4-5-thinking` | `claude-opus-4-5-thinking` | ✓ | text, image |
+| 20 | `claude-sonnet-4-6` | `claude-sonnet-4-6` | ✓ | text, image |
+| 21 | `claude-sonnet-4-5-thinking` | `claude-sonnet-4-5-thinking` | ✓ | text, image |
+| 22 | `claude-sonnet-4-5` | `claude-sonnet-4-5` | ✗ | text, image |
+| 23 | `gpt-oss-120b-medium` | `gpt-oss-120b-medium` | ✗ | text |
 
 *Mô hình Claude/GPT-OSS là experimental — Google có thể thay đổi đường wire bất cứ lúc nào.*

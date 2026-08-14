@@ -160,7 +160,13 @@ describe("transport", () => {
 
     process.env.OPENCODE_AGY_UA_MODE = "cli";
     const hCli = getAntigravityHeaders("gemini-3-flash");
-    assert.match(hCli["User-Agent"], /^agy\//);
+    assert.match(hCli["User-Agent"], /^antigravity\/cli\/1\.1\.13 \(aidev_client;/);
+    delete process.env.OPENCODE_AGY_UA_MODE;
+
+    process.env.OPENCODE_AGY_UA_MODE = "sdk";
+    const hSdk = getAntigravityHeaders("gemini-3-flash");
+    assert.match(hSdk["User-Agent"], /^antigravity\/1\.21\.9/);
+    delete process.env.OPENCODE_AGY_UA_MODE;
 
     process.env.OPENCODE_AGY_UA_MODE = "desktop";
     const hDesk = getAntigravityHeaders("gemini-3-flash");

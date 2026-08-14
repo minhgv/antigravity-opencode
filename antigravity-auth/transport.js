@@ -9,7 +9,6 @@ export const ANTIGRAVITY_DAILY = "https://daily-cloudcode-pa.sandbox.googleapis.
 export const ANTIGRAVITY_AUTOPUSH = "https://autopush-cloudcode-pa.sandbox.googleapis.com";
 export const ENDPOINT_FALLBACKS = [ANTIGRAVITY_DAILY, ANTIGRAVITY_AUTOPUSH, DEFAULT_ENDPOINT];
 
-const DEFAULT_ANTIGRAVITY_VERSION = process.env.PI_AI_ANTIGRAVITY_VERSION || "1.21.9";
 const CLAUDE_THINKING_BETA_HEADER = "interleaved-thinking-2025-05-14";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
@@ -87,16 +86,19 @@ export function getAntigravityHeaders(modelId = "") {
     process.platform === "darwin" ? "darwin" : process.platform === "win32" ? "windows" : "linux";
   const arch = process.arch === "arm64" ? "arm64" : "amd64";
 
-  // User-Agent mode: 'sdk' (default antigravity/1.21.9), 'cli' (agy/1.1.5), 'desktop' (Antigravity/2.2.1)
-  const uaMode = (process.env.OPENCODE_AGY_UA_MODE || "sdk").toLowerCase();
-  let userAgentStr = `antigravity/${DEFAULT_ANTIGRAVITY_VERSION} ${platform}/${arch}`;
+  // User-Agent mode: 'cli' (default, official Antigravity CLI UA — unlocks newest
+  // models like gemini-3.7-flash; server routes model availability by UA prefix),
+  // 'sdk' (antigravity/1.21.9), 'desktop' (Antigravity/2.2.1).
+  const uaMode = (process.env.OPENCODE_AGY_UA_MODE || "cli").toLowerCase();
+  let userAgentStr;
 
-  if (uaMode === "cli") {
-    const cliVer = process.env.PI_AI_ANTIGRAVITY_VERSION || "1.1.5";
-    userAgentStr = `agy/${cliVer} ${platform}/${arch}`;
+  if (uaMode === "sdk") {
+    userAgentStr = `antigravity/${process.env.PI_AI_ANTIGRAVITY_VERSION || "1.21.9"} ${platform}/${arch}`;
   } else if (uaMode === "desktop") {
-    const deskVer = process.env.PI_AI_ANTIGRAVITY_VERSION || "2.2.1";
-    userAgentStr = `Antigravity/${deskVer} ${platform}/${arch}`;
+    userAgentStr = `Antigravity/${process.env.PI_AI_ANTIGRAVITY_VERSION || "2.2.1"} ${platform}/${arch}`;
+  } else {
+    const cliVer = process.env.PI_AI_ANTIGRAVITY_VERSION || "1.1.13";
+    userAgentStr = `antigravity/cli/${cliVer} (aidev_client; os_type=${platform}; arch=${arch}; auth_method=consumer)`;
   }
 
   const headers = {
@@ -674,6 +676,9 @@ export const ANTIGRAVITY_MODEL_CATALOG = {
   "gemini-3.5-flash-low": entry("Gemini 3.5 Flash (Medium) (Antigravity)", 1048576, 65536, true),
   "gemini-3-flash-agent": entry("Gemini 3.5 Flash (High) (Antigravity)", 1048576, 65536, true),
   "gemini-3.5-flash-lite": entry("Gemini 3.5 Flash-Lite (Antigravity)", 1048576, 65535, false, ["text"]),
+  "gemini-3.7-flash-high": entry("Gemini 3.7 Flash (High) (Antigravity)", 1048576, 65536, true),
+  "gemini-3.7-flash-medium": entry("Gemini 3.7 Flash (Medium) (Antigravity)", 1048576, 65536, true),
+  "gemini-3.7-flash-low": entry("Gemini 3.7 Flash (Low) (Antigravity)", 1048576, 65536, true),
   "gemini-3.6-flash-high": entry("Gemini 3.6 Flash (High) (Antigravity)", 1048576, 65536, true),
   "gemini-3.6-flash-medium": entry("Gemini 3.6 Flash (Medium) (Antigravity)", 1048576, 65536, false),
   "gemini-3.6-flash-low": entry("Gemini 3.6 Flash (Low) (Antigravity)", 1048576, 65536, false),
