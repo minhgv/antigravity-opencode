@@ -184,9 +184,13 @@ describe("transport", () => {
     assert.ok(extractRetryDelay("", { headers }) >= 3000);
   });
 
-  it("catalog has active Gemini models", () => {
+  it("catalog has active and provisional Gemini models", () => {
     const ids = Object.keys(ANTIGRAVITY_MODEL_CATALOG);
     for (const need of [
+      "gemini-3.8-flash",
+      "gemini-3.8-flash-high",
+      "gemini-3.8-flash-medium",
+      "gemini-3.8-flash-low",
       "gemini-3-flash",
       "gemini-3.1-pro-high",
       "gemini-3.7-flash-high",
@@ -213,12 +217,28 @@ describe("transport", () => {
     );
     assert.equal(env.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
   });
+  it("buildEnvelope injects appropriate thinking for gemini-3.8-flash variants", () => {
+    const envHigh = buildEnvelope(
+      { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
+      { projectId: "p", modelId: "gemini-3.8-flash-high" },
+    );
+    assert.equal(envHigh.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
+    assert.equal(envHigh.model, "gemini-3.8-flash-high");
 
-  it("sanitizeGenerationConfig maps thinking level per model variant and floors 3.7 MINIMAL", () => {
+    const envBase = buildEnvelope(
+      { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
+      { projectId: "p", modelId: "gemini-3.8-flash" },
+    );
+    assert.equal(envBase.request.generationConfig.thinkingConfig.thinkingLevel, "LOW");
+    assert.equal(envBase.model, "gemini-3.8-flash");
+  });
+
+  it("sanitizeGenerationConfig maps thinking level per model variant and floors 3.7+ MINIMAL", () => {
     assert.equal(isMinimalThinkingSupported("gemini-3.6-flash-high"), true);
     assert.equal(isMinimalThinkingSupported("gemini-3.7-flash-high"), false);
+    assert.equal(isMinimalThinkingSupported("gemini-3.8-flash-high"), false);
+    assert.equal(isMinimalThinkingSupported("gemini-3.8-flash"), false);
     assert.equal(isMinimalThinkingSupported("gemini-4-flash"), false);
-
     // gemini-3.7-flash-high maps to HIGH
     const t37High = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.7-flash-high");
     assert.equal(t37High.thinkingConfig.thinkingLevel, "HIGH");
@@ -237,6 +257,30 @@ describe("transport", () => {
     // explicit MINIMAL on 3.7 bumped to LOW (backend rejects MINIMAL)
     const explicit = sanitizeGenerationConfig({ thinkingConfig: { thinkingLevel: "minimal" } }, "gemini-3.7-flash-low");
     assert.equal(explicit.thinkingConfig.thinkingLevel, "LOW");
+
+    // gemini-3.8-flash-high maps to HIGH
+    const t38High = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.8-flash-high");
+    assert.equal(t38High.thinkingConfig.thinkingLevel, "HIGH");
+    assert.equal(t38High.thinkingConfig.thinkingBudget, undefined);
+
+    // gemini-3.8-flash-medium maps to MEDIUM
+    const t38Med = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.8-flash-medium");
+    assert.equal(t38Med.thinkingConfig.thinkingLevel, "MEDIUM");
+    assert.equal(t38Med.thinkingConfig.thinkingBudget, undefined);
+
+    // gemini-3.8-flash-low maps to LOW
+    const t38Low = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.8-flash-low");
+    assert.equal(t38Low.thinkingConfig.thinkingLevel, "LOW");
+    assert.equal(t38Low.thinkingConfig.thinkingBudget, undefined);
+
+    // gemini-3.8-flash (base) maps to LOW
+    const t38Base = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.8-flash");
+    assert.equal(t38Base.thinkingConfig.thinkingLevel, "LOW");
+    assert.equal(t38Base.thinkingConfig.thinkingBudget, undefined);
+
+    // explicit MINIMAL on 3.8 bumped to LOW (backend rejects MINIMAL)
+    const explicit38 = sanitizeGenerationConfig({ thinkingConfig: { thinkingLevel: "minimal" } }, "gemini-3.8-flash-low");
+    assert.equal(explicit38.thinkingConfig.thinkingLevel, "LOW");
 
     // 3.6 flash high maps to HIGH
     const t36High = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.6-flash-high");

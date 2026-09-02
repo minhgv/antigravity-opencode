@@ -738,8 +738,14 @@ function entry(name, context, output, reasoning, inputs = ["text", "image"]) {
   };
 }
 
-/** Model Catalog for Google Antigravity (16 active Gemini models) */
+/** Model Catalog for Google Antigravity (Gemini models) */
 export const ANTIGRAVITY_MODEL_CATALOG = {
+  // Gemini 3.8 Flash (Provisional / Ready)
+  "gemini-3.8-flash": entry("Gemini 3.8 Flash (Antigravity)", 1048576, 65536, true),
+  "gemini-3.8-flash-high": entry("Gemini 3.8 Flash (High) (Antigravity)", 1048576, 65536, true),
+  "gemini-3.8-flash-medium": entry("Gemini 3.8 Flash (Medium) (Antigravity)", 1048576, 65536, true),
+  "gemini-3.8-flash-low": entry("Gemini 3.8 Flash (Low) (Antigravity)", 1048576, 65536, true),
+
   // Gemini 3.7 Flash
   "gemini-3.7-flash-high": entry("Gemini 3.7 Flash (High) (Antigravity)", 1048576, 65536, true),
   "gemini-3.7-flash-medium": entry("Gemini 3.7 Flash (Medium) (Antigravity)", 1048576, 65536, true),

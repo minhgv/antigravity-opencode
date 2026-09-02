@@ -47,6 +47,12 @@ if (!Array.isArray(cfg.plugin)) cfg.plugin = [];
 if (!cfg.plugin.includes(entry)) cfg.plugin.push(entry);
 
 const MODELS = {
+  // Gemini 3.8 Flash (Provisional / Ready)
+  "gemini-3.8-flash": { name: "Gemini 3.8 Flash (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.8-flash-high": { name: "Gemini 3.8 Flash (High) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.8-flash-medium": { name: "Gemini 3.8 Flash (Medium) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "gemini-3.8-flash-low": { name: "Gemini 3.8 Flash (Low) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+
   // Gemini 3.7 Flash
   "gemini-3.7-flash-high": { name: "Gemini 3.7 Flash (High) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.7-flash-medium": { name: "Gemini 3.7 Flash (Medium) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },

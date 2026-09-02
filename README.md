@@ -74,6 +74,34 @@ cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plug
       "name": "Google Antigravity",
       "npm": "@ai-sdk/google",
       "models": {
+        "gemini-3.8-flash": {
+          "name": "Gemini 3.8 Flash (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "gemini-3.8-flash-high": {
+          "name": "Gemini 3.8 Flash (High) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "gemini-3.8-flash-medium": {
+          "name": "Gemini 3.8 Flash (Medium) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "gemini-3.8-flash-low": {
+          "name": "Gemini 3.8 Flash (Low) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
         "gemini-3.7-flash-high": {
           "name": "Gemini 3.7 Flash (High) (Antigravity)",
           "limit": { "context": 1048576, "output": 65536 },
@@ -309,42 +337,50 @@ Khi gặp HTTP 403/404 từ một endpoint, tự động chuyển endpoint tiế
 
 ---
 
-## 📚 9. Danh mục 16 Mô hình (Full Model Catalog)
+## 📚 9. Danh mục Mô hình (Full Model Catalog)
 
-Plugin đăng ký 16 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js), phân theo từng dòng thế hệ:
+Plugin đăng ký 20 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js), phân theo từng dòng thế hệ:
 
-### 🌟 Dòng Gemini 3.7 Flash (Mới nhất, Thinking mặc định)
+### 🚀 Dòng Gemini 3.8 Flash (Sẵn sàng đón đầu)
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 1 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | `HIGH` | 1M / 64k | text, image |
-| 2 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
-| 3 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | `LOW` | 1M / 64k | text, image |
+| 1 | `gemini-3.8-flash` | `gemini-3.8-flash` | `LOW` | 1M / 64k | text, image |
+| 2 | `gemini-3.8-flash-high` | `gemini-3.8-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 3 | `gemini-3.8-flash-medium` | `gemini-3.8-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
+| 4 | `gemini-3.8-flash-low` | `gemini-3.8-flash-low` | `LOW` | 1M / 64k | text, image |
+
+### 🌟 Dòng Gemini 3.7 Flash (Thinking mặc định)
+| # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
+|---|---|---|---|---|---|
+| 5 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 6 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
+| 7 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | `LOW` | 1M / 64k | text, image |
 
 ### 🧠 Dòng Gemini 3.1 Pro (Agentic Coding & Suy luận sâu)
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 4 | `gemini-pro-agent` | `gemini-pro-agent` | `HIGH` | 1M / 64k | text, image |
-| 5 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | `HIGH` | 1M / 64k | text, image |
-| 6 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | `LOW` | 1M / 64k | text, image |
+| 8 | `gemini-pro-agent` | `gemini-pro-agent` | `HIGH` | 1M / 64k | text, image |
+| 9 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | `HIGH` | 1M / 64k | text, image |
+| 10 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | `LOW` | 1M / 64k | text, image |
 
 ### ⚡ Dòng Gemini 3.6 Flash
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 7 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | `HIGH` | 1M / 64k | text, image |
-| 8 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | *Tắt (false)* | 1M / 64k | text, image |
-| 9 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | *Tắt (false)* | 1M / 64k | text, image |
+| 11 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 12 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | *Tắt (false)* | 1M / 64k | text, image |
+| 13 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | *Tắt (false)* | 1M / 64k | text, image |
 
 ### 🚀 Dòng Gemini 3.5 Flash
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 10 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | `HIGH` | 1M / 64k | text, image |
-| 11 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | `MEDIUM` | 1M / 64k | text, image |
-| 12 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | `LOW` | 1M / 64k | text, image |
-| 13 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | *Tắt (false)* | 1M / 64k | text |
+| 14 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | `HIGH` | 1M / 64k | text, image |
+| 15 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | `MEDIUM` | 1M / 64k | text, image |
+| 16 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | `LOW` | 1M / 64k | text, image |
+| 17 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | *Tắt (false)* | 1M / 64k | text |
 
 ### 🎯 Dòng Gemini 3 Flash & 3.1 Flash Phụ trợ
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 14 | `gemini-3-flash` | `gemini-3-flash` | `MINIMAL` | 1M / 64k | text, image |
-| 15 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | *Tắt (false)* | 1M / 64k | text |
-| 16 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | *Tắt (false)* | 1M / 64k | text |
+| 18 | `gemini-3-flash` | `gemini-3-flash` | `MINIMAL` | 1M / 64k | text, image |
+| 19 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | *Tắt (false)* | 1M / 64k | text |
+| 20 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | *Tắt (false)* | 1M / 64k | text |
