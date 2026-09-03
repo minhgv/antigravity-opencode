@@ -22,6 +22,7 @@ import {
 } from "./auth/index.js";
 import { createAntigravityFetch } from "./transport/index.js";
 import { generateAntigravityImage } from "./image/index.js";
+import { fetchFullQuotaReport, formatQuotaReport } from "./quota/index.js";
 import type {
   OpenCodePluginContext,
   OAuthCredentials,
@@ -30,6 +31,40 @@ import type {
 
 const PRIMARY_PROVIDER_ID = "google-antigravity";
 const ALIAS_PROVIDER_ID = "antigravity";
+
+/**
+ * Creates OpenCode tool definition for checking Antigravity Quota.
+ */
+export function createCheckQuotaTool() {
+  return {
+    description:
+      "Check Google Antigravity remaining quota, shared token pools (Gemini Models, Claude & GPT Models), remaining percentage, and reset time.",
+    args: {
+      showModels: {
+        type: "boolean",
+        description: "Whether to list individual model quota rows in addition to shared pools (default: false).",
+      },
+    },
+    async execute(args?: { showModels?: boolean }) {
+      const auth = await resolveStoredAccessToken();
+      if (!auth?.access) {
+        throw new Error("No Google Antigravity credentials found. Please run 'opencode auth login' first.");
+      }
+      const report = await fetchFullQuotaReport(auth.access, auth.projectId);
+      const text = formatQuotaReport(report, { showModels: args?.showModels });
+      return {
+        title: "Antigravity Quota Status",
+        output: text,
+        metadata: {
+          projectId: report.projectId,
+          endpoint: report.endpoint,
+          groupsCount: report.groups.length,
+          fetchedAt: report.fetchedAt,
+        },
+      };
+    },
+  };
+}
 
 /**
  * Creates OpenCode tool definition for Gemini Image Generation.
@@ -229,6 +264,7 @@ export async function GoogleAntigravityAuthPlugin(
     auth: createAuthHook(PRIMARY_PROVIDER_ID, ctx),
     tool: {
       generate_image: createGenerateImageTool(),
+      check_quota: createCheckQuotaTool(),
     },
   };
 }
@@ -243,6 +279,7 @@ export async function AntigravityAliasAuthPlugin(
     auth: createAuthHook(ALIAS_PROVIDER_ID, ctx),
     tool: {
       generate_image: createGenerateImageTool(),
+      check_quota: createCheckQuotaTool(),
     },
   };
 }

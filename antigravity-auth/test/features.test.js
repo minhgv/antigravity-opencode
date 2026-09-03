@@ -144,15 +144,19 @@ describe("P3: Deterministic ProjectId", () => {
 });
 
 describe("Plugin Tool Registration", () => {
-  it("exposes generate_image tool on primary and alias plugins", async () => {
+  it("exposes generate_image and check_quota tools on primary and alias plugins", async () => {
     const primary = await GoogleAntigravityAuthPlugin();
     assert.ok(primary.tool);
     assert.ok(primary.tool.generate_image);
     assert.equal(typeof primary.tool.generate_image.execute, "function");
     assert.ok(primary.tool.generate_image.args.prompt);
 
+    assert.ok(primary.tool.check_quota);
+    assert.equal(typeof primary.tool.check_quota.execute, "function");
+
     const alias = await AntigravityAliasAuthPlugin();
     assert.ok(alias.tool);
     assert.ok(alias.tool.generate_image);
+    assert.ok(alias.tool.check_quota);
   });
 });
