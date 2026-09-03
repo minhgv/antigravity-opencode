@@ -1,7 +1,23 @@
 /**
  * Project discovery and account inspection for Google Antigravity.
  */
+import { createHash } from "node:crypto";
 import { DEFAULT_PROJECT_ID, DEFAULT_ENDPOINT, ANTIGRAVITY_DAILY } from "./constants.js";
+
+/**
+ * Deterministic UUID-shaped stable project ID derived from account email or seed.
+ */
+export function stableProjectId(seed: string): string {
+  const bytes = createHash("sha1").update(`antigravity:${seed}`).digest().subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+export function defaultProjectId(seed = "antigravity-default"): string {
+  return process.env.ANTIGRAVITY_PROJECT_ID?.trim() || stableProjectId(seed);
+}
 
 export async function getUserEmail(accessToken: string): Promise<string | undefined> {
   try {
@@ -19,9 +35,10 @@ export async function getUserEmail(accessToken: string): Promise<string | undefi
 }
 
 /**
- * Discover Cloud AI Companion project via loadCodeAssist
+ * Discover Cloud AI Companion project via loadCodeAssist, falling back
+ * to a deterministic stableProjectId(email) if none is configured.
  */
-export async function discoverProject(accessToken: string): Promise<string> {
+export async function discoverProject(accessToken: string, userEmail?: string): Promise<string> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
@@ -67,5 +84,12 @@ export async function discoverProject(accessToken: string): Promise<string> {
       // try next endpoint
     }
   }
-  return DEFAULT_PROJECT_ID;
+
+  // Fallback: If no user project returned by loadCodeAssist, derive deterministic project ID from email
+  const email = userEmail || (await getUserEmail(accessToken));
+  if (email) {
+    return stableProjectId(email);
+  }
+
+  return process.env.ANTIGRAVITY_PROJECT_ID?.trim() || DEFAULT_PROJECT_ID;
 }

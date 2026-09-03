@@ -16,10 +16,12 @@ import {
   discoverProject,
   readMeta,
   writeMeta,
+  resolveStoredAccessToken,
   DEFAULT_PROJECT_ID,
   OAUTH_DUMMY_KEY,
 } from "./auth/index.js";
 import { createAntigravityFetch } from "./transport/index.js";
+import { generateAntigravityImage } from "./image/index.js";
 import type {
   OpenCodePluginContext,
   OAuthCredentials,
@@ -28,6 +30,63 @@ import type {
 
 const PRIMARY_PROVIDER_ID = "google-antigravity";
 const ALIAS_PROVIDER_ID = "antigravity";
+
+/**
+ * Creates OpenCode tool definition for Gemini Image Generation.
+ */
+export function createGenerateImageTool() {
+  return {
+    description:
+      "Generate high-quality images using Gemini Image models via Google Antigravity (gemini-3-pro-image, gemini-3.1-flash-image). Automatically saves the image file to the workspace.",
+    args: {
+      prompt: {
+        type: "string",
+        description: "Detailed visual description of the image to generate.",
+      },
+      aspectRatio: {
+        type: "string",
+        description:
+          "Aspect ratio: '1:1' (default), '16:9', '9:16', '4:3', '3:4', '2:3', '3:2', '4:5', '5:4', '21:9'.",
+      },
+      path: {
+        type: "string",
+        description: "Optional project-relative file or directory path to save the image (e.g. 'assets/hero.png').",
+      },
+      model: {
+        type: "string",
+        description: "Optional image model: 'gemini-3-pro-image' (default) or 'gemini-3.1-flash-image'.",
+      },
+    },
+    async execute(args: { prompt: string; aspectRatio?: string; path?: string; model?: string }, context?: any) {
+      const auth = await resolveStoredAccessToken();
+      if (!auth?.access) {
+        throw new Error(
+          "No Google Antigravity credentials found. Please run 'opencode auth login' first.",
+        );
+      }
+      const cwd = context?.directory || process.cwd();
+      const result = await generateAntigravityImage({
+        prompt: args.prompt,
+        accessToken: auth.access,
+        projectId: auth.projectId,
+        cwd,
+        aspectRatio: args.aspectRatio,
+        model: args.model,
+        path: args.path,
+        signal: context?.abort,
+      });
+
+      return {
+        title: "Image Generated",
+        output: `Successfully generated image (${result.model}). Saved to: ${result.savedPaths.join(", ")}`,
+        metadata: {
+          savedPaths: result.savedPaths,
+          model: result.model,
+        },
+      };
+    },
+  };
+}
 
 /**
  * Creates an OpenCode AuthHook for the given provider ID.
@@ -168,6 +227,9 @@ export async function GoogleAntigravityAuthPlugin(
 ) {
   return {
     auth: createAuthHook(PRIMARY_PROVIDER_ID, ctx),
+    tool: {
+      generate_image: createGenerateImageTool(),
+    },
   };
 }
 
@@ -179,6 +241,9 @@ export async function AntigravityAliasAuthPlugin(
 ) {
   return {
     auth: createAuthHook(ALIAS_PROVIDER_ID, ctx),
+    tool: {
+      generate_image: createGenerateImageTool(),
+    },
   };
 }
 

@@ -15,7 +15,7 @@ OPENCODE_DIR="$CONFIG_HOME/opencode"
 PLUGIN_DIR="$OPENCODE_DIR/plugins/antigravity-auth"
 CONFIG_FILE="$OPENCODE_DIR/opencode.json"
 
-PLUGIN_FILES=(plugin.js oauth.js transport.js store.js package.json)
+PLUGIN_FILES=(plugin.js oauth.js transport.js store.js quota.js image.js package.json)
 
 echo "==> Building and installing antigravity-auth plugin to $PLUGIN_DIR"
 if [ -f "$SRC_DIR/package.json" ]; then
@@ -103,8 +103,11 @@ NODE
   echo "    config merged"
 fi
 
+chmod +x "$PLUGIN_DIR/quota.js" "$PLUGIN_DIR/image.js" 2>/dev/null || true
+
 echo
 echo "==> Done. Next steps:"
 echo "  1. opencode auth login   # pick 'Google Antigravity (browser)'"
 echo "  2. opencode models google-antigravity"
 echo "  3. opencode              # select google-antigravity/gemini-3-flash"
+echo "  4. node $PLUGIN_DIR/quota.js  # check remaining quota & token limits"

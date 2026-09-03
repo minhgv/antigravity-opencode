@@ -8,15 +8,18 @@ Plugin cho phép sử dụng toàn bộ các mô hình **Gemini (Flash, Pro, Thi
 
 ## 🌟 Điểm nổi bật phiên bản v1.2.0
 
-- ⚡ **Kiến trúc TypeScript Native Modular**: Mã nguồn được tổ chức module hóa chặt chẽ (`src/auth`, `src/models`, `src/transport`, `src/utils`, `src/types`), biên dịch chuẩn ES Module.
+- ⚡ **Kiến trúc TypeScript Native Modular**: Mã nguồn được tổ chức module hóa chặt chẽ (`src/auth`, `src/models`, `src/transport`, `src/quota`, `src/image`, `src/utils`, `src/types`), biên dịch chuẩn ES Module.
 - 🔄 **Hỗ trợ Dual Provider ID**: Hỗ trợ đồng thời 2 provider ID trong OpenCode:
   - `google-antigravity`: Provider chính thống (`Google Antigravity`).
   - `antigravity`: Alias ngắn gọn tiện lợi (`Antigravity (Native)`).
+- 📊 **Kiểm tra Quota & Hạn mức Token Thời gian Thực (P1)**: Lệnh `quota.js` truy vấn trực tiếp Cloud Code Assist (`/v1internal:retrieveUserQuotaSummary`), hiển thị thanh tiến trình trực quan (% còn lại, thời gian reset) cho cả nhóm Gemini Models và Claude/GPT Models.
+- 🎨 **Tích hợp Sinh ảnh Gemini (generate_image) (P2)**: Tích hợp tool và lệnh CLI sinh ảnh độ nét cao qua Gemini 3 Image models (`gemini-3-pro-image`, `gemini-3.1-flash-image`) với đầy đủ tỉ lệ khung hình (`16:9`, `1:1`, v.v.).
+- 🔐 **Deterministic Project ID (`stableProjectId`) (P3)**: Tự động hash email của người dùng thành UUID v5 cố định theo tài khoản khi Google không trả về project riêng, đảm bảo tính cô lập và ổn định quota.
 - 🚀 **Connection Pooling & TLS Prewarming**: Sử dụng connection pool giữ kết nối (keep-alive) thông qua `undici` Agent (8 connections) và prewarm TLS handshake ngầm tới endpoint Google, loại bỏ hoàn toàn độ trễ 150–300ms trong các tương tác tiếp theo.
 - 🛠️ **Recursive JSON Schema Dereferencing**: Tự động giải quyết đệ quy các con trỏ `$ref`, `$defs`, `definitions` và chuẩn hóa schema về chuẩn OpenAPI, triệt tiêu hoàn toàn lỗi **HTTP 400 (INVALID_ARGUMENT)** khi OpenCode gửi các định nghĩa công cụ (tool definitions) phức tạp.
 - 🧠 **Bảo tồn Gemini 3 Thought Signature**: Tự động inject và bảo tồn `thoughtSignature` (`skip_thought_signature_validator`) cho các mô hình thế hệ Gemini 3 khi thực hiện chuỗi multi-turn tool call.
 - 🤖 **Mở rộng Model Catalog (31 Models)**: Sẵn sàng hỗ trợ đầy đủ Gemini 3.8 Flash, 3.7 Flash, 3.1 Pro Agent, 3.6 Flash, 3.5 Flash, cùng cầu nối tới Claude (Opus 4.6, Sonnet 4.6 Thinking) và GPT OSS 120b.
-- 🧪 **100% Pass Unit Tests**: 33/33 unit tests kiểm thử tự động trên 4 suites (PKCE, Transport, Store, Native Architecture).
+- 🧪 **100% Pass Unit Tests**: 43/43 unit tests kiểm thử tự động trên 8 test suites.
 
 ---
 
@@ -27,20 +30,25 @@ antigravity-opencode/
 ├── install.sh            # Cài đặt và build tự động (idempotent, cấu hình dual provider)
 ├── antigravity-auth/     # Mã nguồn plugin (TypeScript Native)
 │   ├── src/
-│   │   ├── auth/         # OAuth PKCE, credentials, store, project discovery
+│   │   ├── auth/         # OAuth PKCE, credentials, store, deterministic project discovery
 │   │   ├── models/       # Model catalog, thinking levels, model aliases
 │   │   ├── transport/    # Custom fetch cho @ai-sdk/google, envelope wrapping, SSE stream unwrap
+│   │   ├── quota/        # Tra cứu và định dạng quota / token pool thời gian thực
+│   │   ├── image/        # Tạo ảnh qua Gemini Image models (16:9, 1:1, ...) & lưu file
 │   │   ├── utils/        # Undici connection pool & prewarm, schema dereference, retry backoff, system prompt
 │   │   ├── types/        # TypeScript type definitions
-│   │   ├── plugin.ts     # OpenCode plugin entry point (dual provider: google-antigravity & antigravity)
+│   │   ├── bin/          # CLI scripts (quota.ts, image.ts)
+│   │   ├── plugin.ts     # OpenCode plugin entry point (dual provider + generate_image tool)
 │   │   └── index.ts      # Main barrel export
 │   ├── plugin.js         # Entry point re-export dist/plugin.js (OpenCode runtime nạp file này)
 │   ├── oauth.js          # Re-export dist/auth/index.js
 │   ├── transport.js      # Re-export dist/transport, dist/models, dist/utils
 │   ├── store.js          # Re-export dist/auth/store.js
-│   ├── package.json      # Dependencies (undici) & scripts (build, test, typecheck)
+│   ├── quota.js          # CLI kiểm tra Quota & Token Limits trực quan
+│   ├── image.js          # CLI tạo ảnh độc lập với Gemini
+│   ├── package.json      # Dependencies (undici) & scripts (build, quota, image, test)
 │   ├── tsconfig.json     # Cấu hình TypeScript ESM (Node16)
-│   └── test/             # Bộ unit tests (Node.js test runner)
+│   └── test/             # Bộ 43 unit tests (Node.js test runner)
 └── README.md             # Tài liệu này
 ```
 
@@ -98,8 +106,9 @@ mkdir -p ~/.config/opencode/plugins/antigravity-auth
 **Bước 3: Sao chép files thực thi và build artifacts**
 ```bash
 # Từ thư mục antigravity-auth/
-cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plugins/antigravity-auth/
+cp plugin.js oauth.js transport.js store.js quota.js image.js package.json ~/.config/opencode/plugins/antigravity-auth/
 cp -R dist node_modules ~/.config/opencode/plugins/antigravity-auth/
+chmod +x ~/.config/opencode/plugins/antigravity-auth/quota.js ~/.config/opencode/plugins/antigravity-auth/image.js
 ```
 
 **Bước 4: Cấu hình `~/.config/opencode/opencode.json`**
@@ -313,7 +322,59 @@ Sau khi cài đặt:
 
 ## 🧪 4. Kiểm tra & Sử dụng
 
-### Kiểm tra danh sách mô hình đã nạp:
+### 4.1. Kiểm tra Quota & Hạn mức Token Thời gian Thực (Mới 🌟)
+
+Bạn có thể tra cứu ngay lập tức số lượng quota còn lại của tài khoản Google Antigravity (gồm 2 nhóm dùng chung: **Gemini Models** và **Claude/GPT Models**):
+
+```bash
+# Chạy từ thư mục cài đặt plugin
+node ~/.config/opencode/plugins/antigravity-auth/quota.js
+
+# Hoặc xem chi tiết từng mô hình cụ thể trong quota pool
+node ~/.config/opencode/plugins/antigravity-auth/quota.js --models
+```
+
+**Mẫu kết quả trực quan:**
+```
+================================================================
+📊 Google Antigravity Quota Status (Project: rising-fact-p41fc)
+Endpoint: https://cloudcode-pa.googleapis.com
+================================================================
+
+🔹 Gemini Models
+   (Models within this group: Gemini Flash, Gemini Pro)
+   [###################-] Weekly Limit Remaining     : 97.1% còn lại (Reset: 5d 22h)
+   [#################---] Five Hour Limit Remaining  : 87.4% còn lại (Reset: 4h 11m)
+
+🔹 Claude and GPT models
+   (Models within this group: Claude Opus, Claude Sonnet, GPT-OSS)
+   [####################] Weekly Limit Remaining     :  100% còn lại (Reset: 6d 23h)
+   [####################] Five Hour Limit Remaining  :  100% còn lại (Reset: 5h 0m)
+================================================================
+```
+
+---
+
+### 4.2. Sinh ảnh bằng Gemini Image Models (Mới 🌟)
+
+Plugin tích hợp sẵn tool `generate_image` cho Agent OpenCode và cung cấp lệnh CLI để tạo ảnh độc lập:
+
+**Cách 1: Yêu cầu trực tiếp Agent OpenCode trong phiên làm việc**
+> *"Vẽ cho tôi một bức ảnh phong cảnh cyberpunk Hà Nội tỉ lệ 16:9"*  
+Agent sẽ tự động gọi tool `generate_image` và lưu ảnh vào thư mục `.opencode/generated-images/`.
+
+**Cách 2: Chạy trực tiếp từ dòng lệnh (CLI)**
+```bash
+# Tạo ảnh với tỉ lệ 16:9
+node ~/.config/opencode/plugins/antigravity-auth/image.js --prompt "A futuristic floating city in the clouds" --ratio 16:9 --out ./city.png
+
+# Xem danh sách tùy chọn
+node ~/.config/opencode/plugins/antigravity-auth/image.js --help
+```
+
+---
+
+### 4.3. Kiểm tra danh sách mô hình đã nạp:
 ```bash
 # Kiểm tra theo provider chính
 opencode models google-antigravity
@@ -322,7 +383,7 @@ opencode models google-antigravity
 opencode models antigravity
 ```
 
-### Chạy OpenCode với mô hình Antigravity:
+### 4.4. Chạy OpenCode với mô hình Antigravity:
 ```bash
 opencode
 ```
@@ -345,6 +406,7 @@ Bạn có thể tùy chỉnh hành vi của plugin thông qua các biến môi t
 |---|---|---|
 | `OPENCODE_AGY_UA_MODE` | `cli` | Chế độ User-Agent gửi tới Google API:<br>• `cli` (khuyên dùng): `antigravity/cli/<ver>` — **bắt buộc để backend cấp các model mới nhất như Gemini 3.7/3.8**<br>• `sdk`: `antigravity/<ver>`<br>• `desktop`: `Antigravity/<ver>` |
 | `PI_AI_ANTIGRAVITY_VERSION` | `1.1.13` (cli) | Ghi đè chuỗi phiên bản trong User-Agent |
+| `ANTIGRAVITY_PROJECT_ID` | *(auto)* | Ghi đè Project ID chỉ định thay vì dùng tự động phát hiện |
 | `OPENCODE_AGY_NO_KEEPALIVE` | `0` | Đặt `=1` để tắt Connection Pool (Undici Agent) và fallback về fetch chuẩn |
 | `OPENCODE_AGY_NO_PREWARM` | `0` | Đặt `=1` để tắt tính năng tiền kết nối (TLS handshake prewarm) trong background |
 | `OPENCODE_AGY_HTTP2` | `0` | Đặt `=1` để bật hỗ trợ giao thức HTTP/2 trên Undici Connection Pool |
@@ -356,7 +418,7 @@ Bạn có thể tùy chỉnh hành vi của plugin thông qua các biến môi t
 ## 🔒 6. Lưu ý Bảo mật & Khắc phục Lỗi
 
 1. **Phân quyền Tệp Sidecar (`0600`)**: Plugin lưu `projectId` và `email` vào `~/.config/opencode/google-antigravity-meta.json` với phân quyền `0600` (chỉ user sở hữu tiến trình mới có quyền đọc/ghi).
-2. **Tự động khám phá Project ID**: Khi chưa có `projectId`, plugin tự động gọi `v1internal:loadCodeAssist` lên Cloud Code Assist API để trích xuất `cloudaicompanionProject`. Nếu tài khoản chưa kích hoạt project riêng, plugin fallback an toàn về project mặc định `rising-fact-p41fc`.
+2. **Deterministic Project ID (`stableProjectId`)**: Khi Google không trả về `cloudaicompanionProject`, plugin áp dụng thuật toán `stableProjectId(email)` sinh ra một UUID v5 định danh duy nhất theo tài khoản email của bạn. Điều này đảm bảo tính ổn định và tách biệt quota giữa các tài khoản khác nhau trên cùng máy.
 3. **Single-flight Token Refresh**: Khi nhiều tool call hoặc streaming request chạy song song cùng phát hiện token hết hạn, chỉ có **1 request refresh duy nhất** được gửi tới Google token endpoint (`refreshInFlight`). Tất cả các luồng khác chờ kết quả chung, triệt tiêu nguy cơ race condition hay bị Google rate-limit token refresh.
 4. **Xử lý Đệ quy Tool Schemas ($defs / $ref)**: Khi các công cụ OpenCode trả về schema phức tạp chứa con trỏ JSON Schema (`$defs`, `$ref`, `definitions`), hàm `dereferenceSchema()` sẽ đệ quy làm phẳng và `sanitizeForOpenApi()` loại bỏ meta-keywords, ngăn ngừa triệt để lỗi HTTP 400 từ Google API.
 5. **⚠️ Gemini 3.7 Flash — `thinkingLevel: MINIMAL` không được hỗ trợ**:
@@ -368,7 +430,7 @@ Bạn có thể tùy chỉnh hành vi của plugin thông qua các biến môi t
 
 ## 🧪 7. Chạy Unit Tests
 
-Plugin đi kèm bộ kiểm thử toàn diện 33/33 tests đạt độ phủ cao, sử dụng trực tiếp Node.js Test Runner:
+Plugin đi kèm bộ kiểm thử toàn diện **43/43 tests pass 100% trên 8 test suites**, sử dụng trực tiếp Node.js Test Runner:
 
 ```bash
 cd antigravity-auth
@@ -376,6 +438,10 @@ npm test
 ```
 
 **Kết quả kiểm thử:**
+- **P1: Quota & Usage formatting** (3 tests): Định dạng thanh tiến trình % quota, delta thời gian reset, báo cáo quota hoàn chỉnh.
+- **P2: Image Generation module** (4 tests): Kiểm tra tính hợp lệ của model sinh ảnh, tỉ lệ khung hình (16:9, 1:1...), chống directory traversal path escape, dựng outer envelope với `imageConfig`.
+- **P3: Deterministic ProjectId** (2 tests): Kiểm tra tính nhất quán của `stableProjectId` từ email và biến môi trường `ANTIGRAVITY_PROJECT_ID`.
+- **Plugin Tool Registration** (1 test): Đăng ký thành công tool `generate_image` trên cả provider chính và alias.
 - **oauth helpers** (3 tests): Tạo PKCE verifier/challenge, URL auth với đầy đủ scopes, buffer thời gian hết hạn token.
 - **transport** (23 tests): Trích xuất Model ID từ URL, nhận diện URL Generative Language, wrap envelope Antigravity, Claude tool adapter & schema sanitization, Gemini 3 `thoughtSignature` sentinel, chuẩn hóa tool ID, thinking level mapping & 3.7+ MINIMAL floor, incremental SSE unwrap (hỗ trợ cả CRLF và multi-event chunk), rewrite v1internal, xử lý HTTP 401 tự động refresh, hủy stream an toàn.
 - **store sidecar** (1 test): Đọc/ghi `projectId` bảo mật với phân quyền hệ thống.

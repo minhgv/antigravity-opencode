@@ -10,3 +10,5 @@ export * from "./auth/index.js";
 export * from "./models/index.js";
 export * from "./utils/index.js";
 export * from "./transport/index.js";
+export * from "./quota/index.js";
+export * from "./image/index.js";

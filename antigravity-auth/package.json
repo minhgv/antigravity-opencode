@@ -5,10 +5,16 @@
   "type": "module",
   "description": "OpenCode AuthHook + custom fetch for Google Antigravity (Cloud Code Assist) Gemini models",
   "main": "plugin.js",
+  "bin": {
+    "antigravity-quota": "./quota.js",
+    "antigravity-image": "./image.js"
+  },
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "prepack": "npm run build",
+    "quota": "node quota.js",
+    "image": "node image.js",
     "test": "node --test test/*.test.js",
     "typecheck": "tsc --noEmit",
     "install-plugin": "bash ../install.sh"

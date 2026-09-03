@@ -191,7 +191,7 @@ export async function loginAntigravity(): Promise<LoginResult> {
             throw new Error("No refresh token received. Please try again.");
           }
           const email = await getUserEmail(tokenData.access_token);
-          const projectId = await discoverProject(tokenData.access_token);
+          const projectId = await discoverProject(tokenData.access_token, email);
           const expires = Date.now() + tokenData.expires_in * 1000 - 5 * 60 * 1000;
           return {
             type: "success",

@@ -5,6 +5,8 @@
 import { mkdirSync, readFileSync, writeFileSync, chmodSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { DEFAULT_PROJECT_ID } from "./constants.js";
+import { refreshAccessToken, toExpires } from "./pkce.js";
 import type { AuthMeta } from "../types/index.js";
 
 export function metaPath(
@@ -41,4 +43,51 @@ export function writeMeta(
     // best-effort on platforms without chmod
   }
   return next;
+}
+
+export function getStoredAuthCredentials(): {
+  access: string;
+  refresh: string;
+  expires?: number;
+  accountId?: string;
+} | null {
+  const authPath = join(homedir(), ".local", "share", "opencode", "auth.json");
+  if (!existsSync(authPath)) return null;
+  try {
+    const data = JSON.parse(readFileSync(authPath, "utf8"));
+    const agy = data["google-antigravity"] || data["antigravity"];
+    if (agy && agy.access && agy.refresh) return agy;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export async function resolveStoredAccessToken(): Promise<{ access: string; projectId: string } | null> {
+  const creds = getStoredAuthCredentials();
+  if (!creds) return null;
+
+  let access = creds.access;
+  if (creds.expires && creds.expires < Date.now() + 60_000 && creds.refresh) {
+    try {
+      const refreshed = await refreshAccessToken(creds.refresh);
+      access = refreshed.access_token;
+      creds.access = access;
+      if (refreshed.refresh_token) creds.refresh = refreshed.refresh_token;
+      creds.expires = toExpires(refreshed.expires_in ?? 3600);
+      const authPath = join(homedir(), ".local", "share", "opencode", "auth.json");
+      if (existsSync(authPath)) {
+        const fullAuth = JSON.parse(readFileSync(authPath, "utf8"));
+        if (fullAuth["google-antigravity"]) fullAuth["google-antigravity"] = creds;
+        if (fullAuth["antigravity"]) fullAuth["antigravity"] = creds;
+        writeFileSync(authPath, JSON.stringify(fullAuth, null, 2));
+      }
+    } catch {
+      // fallback to existing
+    }
+  }
+
+  const meta = readMeta();
+  const projectId = meta.projectId || creds.accountId || DEFAULT_PROJECT_ID;
+  return { access, projectId };
 }
