@@ -18,7 +18,11 @@ import {
   resolveWireModelId,
   SKIP_THOUGHT_SIGNATURE,
   ANTIGRAVITY_MODEL_CATALOG,
+  dereferenceSchema,
+  ensureRootObjectSchema,
+  prewarmConnection,
 } from "../transport.js";
+import GoogleAntigravityAuthPlugin from "../plugin.js";
 import { generatePKCE, buildAuthUrl, toExpires } from "../oauth.js";
 import { writeMeta, readMeta } from "../store.js";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -527,5 +531,79 @@ describe("store sidecar", () => {
     assert.equal(m.projectId, "p1");
     assert.equal(m.email, "a@b.c");
     rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("native architecture improvements", () => {
+  it("extracts model ID with dual provider prefixes", () => {
+    assert.equal(
+      extractModelIdFromUrl(
+        "https://generativelanguage.googleapis.com/v1beta/models/google-antigravity/gemini-3.8-flash:generateContent",
+      ),
+      "gemini-3.8-flash",
+    );
+    assert.equal(
+      extractModelIdFromUrl(
+        "https://generativelanguage.googleapis.com/v1beta/models/antigravity/gemini-3-flash:streamGenerateContent",
+      ),
+      "gemini-3-flash",
+    );
+  });
+
+  it("dereferences nested $defs/$ref in tool schemas", () => {
+    const rawSchema = {
+      $defs: {
+        Address: {
+          type: "object",
+          properties: { street: { type: "string" } },
+        },
+      },
+      type: "object",
+      properties: {
+        home: { $ref: "#/$defs/Address" },
+      },
+    };
+    const dereferenced = dereferenceSchema(rawSchema);
+    assert.equal(dereferenced.properties.home.type, "object");
+    assert.equal(dereferenced.properties.home.properties.street.type, "string");
+  });
+
+  it("ensures root object schema defaults to type object", () => {
+    const schemaWithoutType = { properties: { a: { type: "string" } } };
+    const wrapped = ensureRootObjectSchema(schemaWithoutType);
+    assert.equal(wrapped.type, "object");
+    assert.ok(wrapped.properties && wrapped.properties.a);
+  });
+
+  it("sanitizes OpenAPI schema removing meta keywords", () => {
+    const schema = {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      $defs: { Foo: { type: "string" } },
+      type: "object",
+      title: "TestSchema",
+      description: "My Test",
+      properties: {
+        name: { type: "string" },
+      },
+    };
+    const sanitized = sanitizeForOpenApi(schema);
+    assert.equal(sanitized.$schema, undefined);
+    assert.equal(sanitized.$defs, undefined);
+    assert.equal(sanitized.title, "TestSchema");
+    assert.equal(sanitized.description, "My Test");
+  });
+
+  it("prewarms connection without throwing", () => {
+    assert.doesNotThrow(() => {
+      prewarmConnection("https://cloudcode-pa.googleapis.com");
+    });
+  });
+
+  it("initializes plugin and exposes auth hooks for dual providers", async () => {
+    const plugin = await GoogleAntigravityAuthPlugin();
+    assert.ok(plugin.auth);
+    assert.equal(plugin.auth.provider, "google-antigravity");
+    assert.ok(plugin.auth.loader);
+    assert.equal(plugin.auth.methods[0].type, "oauth");
   });
 });

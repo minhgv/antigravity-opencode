@@ -17,7 +17,11 @@ CONFIG_FILE="$OPENCODE_DIR/opencode.json"
 
 PLUGIN_FILES=(plugin.js oauth.js transport.js store.js package.json)
 
-echo "==> Installing antigravity-auth plugin to $PLUGIN_DIR"
+echo "==> Building and installing antigravity-auth plugin to $PLUGIN_DIR"
+if [ -f "$SRC_DIR/package.json" ]; then
+  echo "==> Compiling TypeScript..."
+  (cd "$SRC_DIR" && npm run build)
+fi
 
 mkdir -p "$PLUGIN_DIR"
 for f in "${PLUGIN_FILES[@]}"; do
@@ -27,8 +31,15 @@ for f in "${PLUGIN_FILES[@]}"; do
   fi
   cp "$SRC_DIR/$f" "$PLUGIN_DIR/"
 done
-echo "    copied ${#PLUGIN_FILES[@]} files"
-
+if [ -d "$SRC_DIR/dist" ]; then
+  rm -rf "$PLUGIN_DIR/dist"
+  cp -R "$SRC_DIR/dist" "$PLUGIN_DIR/"
+fi
+if [ -d "$SRC_DIR/node_modules" ]; then
+  rm -rf "$PLUGIN_DIR/node_modules"
+  cp -R "$SRC_DIR/node_modules" "$PLUGIN_DIR/"
+fi
+echo "    copied plugin files, dist, and dependencies"
 if [ "${OPENCODE_AGY_SKIP_CONFIG:-0}" = "1" ]; then
   echo "==> SKIP_CONFIG set — not touching $CONFIG_FILE"
 else
@@ -81,11 +92,12 @@ const MODELS = {
 };
 
 cfg.provider = cfg.provider || {};
-cfg.provider["google-antigravity"] = cfg.provider["google-antigravity"] || {};
-cfg.provider["google-antigravity"].name = cfg.provider["google-antigravity"].name || "Google Antigravity";
-cfg.provider["google-antigravity"].npm = cfg.provider["google-antigravity"].npm || "@ai-sdk/google";
-cfg.provider["google-antigravity"].models = Object.assign({}, MODELS, cfg.provider["google-antigravity"].models || {});
-
+for (const pId of ["google-antigravity", "antigravity"]) {
+  cfg.provider[pId] = cfg.provider[pId] || {};
+  cfg.provider[pId].name = cfg.provider[pId].name || (pId === "antigravity" ? "Antigravity (Native)" : "Google Antigravity");
+  cfg.provider[pId].npm = cfg.provider[pId].npm || "@ai-sdk/google";
+  cfg.provider[pId].models = Object.assign({}, MODELS, cfg.provider[pId].models || {});
+}
 fs.writeFileSync(configFile, JSON.stringify(cfg, null, 2) + "\n");
 NODE
   echo "    config merged"

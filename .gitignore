@@ -1,4 +1,17 @@
 .DS_Store
 node_modules/
+dist/
 coverage/
 *.log
+package-lock.json
+
+# Local agent & tooling state
+.sot/
+.omp/
+.claude/
+.cursor/
+.gemini/
+.opencode/
+.mcp.json
+AGENTS.md
+graphify-out/

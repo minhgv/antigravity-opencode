@@ -6,15 +6,21 @@ Plugin cho phép sử dụng toàn bộ các mô hình **Gemini (Flash, Pro, Thi
 
 ```
 antigravity-opencode/
-├── install.sh            # cài đặt tự động (agent/CLI chạy được)
-├── antigravity-auth/     # mã nguồn plugin
-│   ├── plugin.js
-│   ├── oauth.js
-│   ├── transport.js
-│   ├── store.js
+├── install.sh            # Cài đặt và build tự động (agent/CLI chạy được)
+├── antigravity-auth/     # Mã nguồn plugin (TypeScript Native)
+│   ├── src/
+│   │   ├── auth/         # OAuth PKCE, credentials, store, account
+│   │   ├── client/       # Cloud Code Assist client, sessions, request builders
+│   │   ├── models/       # Model catalog, thinking levels, tool call mappings
+│   │   ├── stream/       # SSE streaming & unwrap, OpenAPI schema dereferencer
+│   │   ├── transport/    # Custom fetch for @ai-sdk/google, undici pool, prewarm
+│   │   ├── types/        # TypeScript type definitions
+│   │   └── plugin.ts     # OpenCode plugin entry point (dual provider)
+│   ├── plugin.js         # Entry point re-exporting dist/plugin.js
 │   ├── package.json
+│   ├── tsconfig.json
 │   └── test/
-└── README.md             # tài liệu này
+└── README.md             # Tài liệu này
 ```
 
 ---
