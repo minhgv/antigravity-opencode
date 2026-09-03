@@ -88,16 +88,12 @@ export function adaptToolsForModel(tools: unknown[], modelId: string): unknown[]
         if (!fd || typeof fd !== "object") return fd;
         const next = { ...fd } as Record<string, unknown>;
         const rawSchema = next.parameters ?? next.parametersJsonSchema;
-        if (rawSchema) {
-          const dereferenced = dereferenceSchema(rawSchema);
-          const rootObject = ensureRootObjectSchema(dereferenced);
-          const cleaned = sanitizeForOpenApi(rootObject);
-          if (claude) {
-            next.parameters = cleaned;
-            delete next.parametersJsonSchema;
-          } else {
-            next.parameters = cleaned;
-          }
+        const dereferenced = rawSchema ? dereferenceSchema(rawSchema) : undefined;
+        const rootObject = ensureRootObjectSchema(dereferenced);
+        const cleaned = sanitizeForOpenApi(rootObject);
+        next.parameters = cleaned;
+        if (claude || next.parametersJsonSchema !== undefined) {
+          delete next.parametersJsonSchema;
         }
         return next;
       }),

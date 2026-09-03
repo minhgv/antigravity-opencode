@@ -67,10 +67,26 @@ export function ensureRootObjectSchema(schema: unknown): Record<string, unknown>
   if (!isRecord(schema)) {
     return { type: "object", properties: {} };
   }
-  if (!schema.type) {
-    return { ...schema, type: "object", properties: schema.properties || {} };
+  const result: Record<string, unknown> = { ...schema };
+  const rawType = typeof result.type === "string" ? result.type.toLowerCase() : "";
+  if (!rawType || rawType === "object") {
+    result.type = "object";
   }
-  return schema;
+  if (!isRecord(result.properties)) {
+    result.properties = {};
+  }
+  if (Array.isArray(result.required)) {
+    const validRequired = (result.required as unknown[]).filter(
+      (key): key is string =>
+        typeof key === "string" && Boolean(isRecord(result.properties) && key in result.properties),
+    );
+    if (validRequired.length > 0) {
+      result.required = validRequired;
+    } else {
+      delete result.required;
+    }
+  }
+  return result;
 }
 
 /**

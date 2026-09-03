@@ -1,4 +1,4 @@
-# Google Antigravity Auth Plugin for OpenCode (v1.2.0)
+# Google Antigravity Auth Plugin for OpenCode (v1.2.1)
 
 Plugin tích hợp xác thực **Google Antigravity OAuth** và **Cloud Code Assist API** trực tiếp vào **OpenCode** (v1.14+).
 
@@ -6,7 +6,7 @@ Plugin cho phép sử dụng toàn bộ các mô hình **Gemini (Flash, Pro, Thi
 
 ---
 
-## 🌟 Điểm nổi bật phiên bản v1.2.0
+## 🌟 Điểm nổi bật phiên bản v1.2.1
 
 - ⚡ **Kiến trúc TypeScript Native Modular**: Mã nguồn được tổ chức module hóa chặt chẽ (`src/auth`, `src/models`, `src/transport`, `src/quota`, `src/image`, `src/utils`, `src/types`), biên dịch chuẩn ES Module.
 - 🔄 **Hỗ trợ Dual Provider ID**: Hỗ trợ đồng thời 2 provider ID trong OpenCode:

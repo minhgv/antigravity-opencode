@@ -110,6 +110,38 @@ describe("transport", () => {
     assert.equal(adapted[0].functionDeclarations[0].parametersJsonSchema, undefined);
   });
 
+  it("adapts parameterless tools to valid object schema (fixes tools.N.custom.input_schema required)", () => {
+    const tools = [
+      {
+        functionDeclarations: [
+          {
+            name: "context-mode_ctx_doctor",
+            description: "Diagnose context-mode installation.",
+          },
+          {
+            name: "param_with_no_properties",
+            parameters: { type: "OBJECT" },
+          },
+          {
+            name: "tool_with_extraneous_required",
+            parameters: {
+              type: "object",
+              properties: { a: { type: "string" } },
+              required: ["a", "b"],
+            },
+          },
+        ],
+      },
+    ];
+    const adapted = adaptToolsForModel(tools, "claude-sonnet-4-6");
+    const [t1, t2, t3] = adapted[0].functionDeclarations;
+    assert.equal(t1.parameters.type, "object");
+    assert.deepEqual(t1.parameters.properties, {});
+    assert.equal(t2.parameters.type, "object");
+    assert.deepEqual(t2.parameters.properties, {});
+    assert.deepEqual(t3.parameters.required, ["a"]);
+  });
+
   it("sanitizeForOpenApi strips meta keys", () => {
     const s = sanitizeForOpenApi({ $schema: "x", type: "object", $defs: {}, properties: { a: { type: "string" } } });
     assert.equal(s.$schema, undefined);

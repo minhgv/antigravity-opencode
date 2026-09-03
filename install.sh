@@ -88,7 +88,16 @@ const MODELS = {
   // Gemini 3 Flash & 3.1 Flash
   "gemini-3-flash": { name: "Gemini 3 Flash (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.1-flash-lite": { name: "Gemini 3.1 Flash Lite (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } },
-  "gemini-3.1-flash-image": { name: "Gemini 3.1 Flash Image (Antigravity)", limit: { context: 1000000, output: 64000 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } }
+  "gemini-3.1-flash-image": { name: "Gemini 3.1 Flash Image (Antigravity)", limit: { context: 1000000, output: 64000 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } },
+
+  // Claude models via Antigravity Bridge
+  "claude-sonnet-4-6": { name: "Claude Sonnet 4.6 (Antigravity)", limit: { context: 200000, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "claude-opus-4-6-thinking": { name: "Claude Opus 4.6 Thinking (Antigravity)", limit: { context: 250000, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "claude-sonnet-4-5": { name: "Claude Sonnet 4.5 (Antigravity)", limit: { context: 200000, output: 65536 }, reasoning: false, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "claude-sonnet-4-5-thinking": { name: "Claude Sonnet 4.5 Thinking (Antigravity)", limit: { context: 200000, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+
+  // GPT OSS models
+  "gpt-oss-120b": { name: "GPT OSS 120b (Antigravity)", limit: { context: 131072, output: 32768 }, reasoning: true, tool_call: true, modalities: { input: ["text"], output: ["text"] } }
 };
 
 cfg.provider = cfg.provider || {};
