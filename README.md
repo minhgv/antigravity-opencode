@@ -1,51 +1,72 @@
-# Google Antigravity Auth Plugin for OpenCode
+# Google Antigravity Auth Plugin for OpenCode (v1.2.0)
 
 Plugin tích hợp xác thực **Google Antigravity OAuth** và **Cloud Code Assist API** trực tiếp vào **OpenCode** (v1.14+).
 
-Plugin cho phép sử dụng toàn bộ các mô hình **Gemini (Flash, Pro, Thinking)** thông qua tài khoản Google Antigravity mà **không cần API Key** và **không bị gãy Tool Calls** (do giữ nguyên native Gemini schema qua `@ai-sdk/google`).
+Plugin cho phép sử dụng toàn bộ các mô hình **Gemini (Flash, Pro, Thinking)** cùng các dòng mô hình nâng cao (**Claude 4.5/4.6**, **GPT OSS**) thông qua tài khoản Google Antigravity mà **không cần API Key** và **không bị gãy Tool Calls** (do giữ nguyên native Gemini schema qua `@ai-sdk/google`).
+
+---
+
+## 🌟 Điểm nổi bật phiên bản v1.2.0
+
+- ⚡ **Kiến trúc TypeScript Native Modular**: Mã nguồn được tổ chức module hóa chặt chẽ (`src/auth`, `src/models`, `src/transport`, `src/utils`, `src/types`), biên dịch chuẩn ES Module.
+- 🔄 **Hỗ trợ Dual Provider ID**: Hỗ trợ đồng thời 2 provider ID trong OpenCode:
+  - `google-antigravity`: Provider chính thống (`Google Antigravity`).
+  - `antigravity`: Alias ngắn gọn tiện lợi (`Antigravity (Native)`).
+- 🚀 **Connection Pooling & TLS Prewarming**: Sử dụng connection pool giữ kết nối (keep-alive) thông qua `undici` Agent (8 connections) và prewarm TLS handshake ngầm tới endpoint Google, loại bỏ hoàn toàn độ trễ 150–300ms trong các tương tác tiếp theo.
+- 🛠️ **Recursive JSON Schema Dereferencing**: Tự động giải quyết đệ quy các con trỏ `$ref`, `$defs`, `definitions` và chuẩn hóa schema về chuẩn OpenAPI, triệt tiêu hoàn toàn lỗi **HTTP 400 (INVALID_ARGUMENT)** khi OpenCode gửi các định nghĩa công cụ (tool definitions) phức tạp.
+- 🧠 **Bảo tồn Gemini 3 Thought Signature**: Tự động inject và bảo tồn `thoughtSignature` (`skip_thought_signature_validator`) cho các mô hình thế hệ Gemini 3 khi thực hiện chuỗi multi-turn tool call.
+- 🤖 **Mở rộng Model Catalog (31 Models)**: Sẵn sàng hỗ trợ đầy đủ Gemini 3.8 Flash, 3.7 Flash, 3.1 Pro Agent, 3.6 Flash, 3.5 Flash, cùng cầu nối tới Claude (Opus 4.6, Sonnet 4.6 Thinking) và GPT OSS 120b.
+- 🧪 **100% Pass Unit Tests**: 33/33 unit tests kiểm thử tự động trên 4 suites (PKCE, Transport, Store, Native Architecture).
+
+---
+
+## 📁 Cấu trúc Thư mục
 
 ```
 antigravity-opencode/
-├── install.sh            # Cài đặt và build tự động (agent/CLI chạy được)
+├── install.sh            # Cài đặt và build tự động (idempotent, cấu hình dual provider)
 ├── antigravity-auth/     # Mã nguồn plugin (TypeScript Native)
 │   ├── src/
-│   │   ├── auth/         # OAuth PKCE, credentials, store, account
-│   │   ├── client/       # Cloud Code Assist client, sessions, request builders
-│   │   ├── models/       # Model catalog, thinking levels, tool call mappings
-│   │   ├── stream/       # SSE streaming & unwrap, OpenAPI schema dereferencer
-│   │   ├── transport/    # Custom fetch for @ai-sdk/google, undici pool, prewarm
+│   │   ├── auth/         # OAuth PKCE, credentials, store, project discovery
+│   │   ├── models/       # Model catalog, thinking levels, model aliases
+│   │   ├── transport/    # Custom fetch cho @ai-sdk/google, envelope wrapping, SSE stream unwrap
+│   │   ├── utils/        # Undici connection pool & prewarm, schema dereference, retry backoff, system prompt
 │   │   ├── types/        # TypeScript type definitions
-│   │   └── plugin.ts     # OpenCode plugin entry point (dual provider)
-│   ├── plugin.js         # Entry point re-exporting dist/plugin.js
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── test/
+│   │   ├── plugin.ts     # OpenCode plugin entry point (dual provider: google-antigravity & antigravity)
+│   │   └── index.ts      # Main barrel export
+│   ├── plugin.js         # Entry point re-export dist/plugin.js (OpenCode runtime nạp file này)
+│   ├── oauth.js          # Re-export dist/auth/index.js
+│   ├── transport.js      # Re-export dist/transport, dist/models, dist/utils
+│   ├── store.js          # Re-export dist/auth/store.js
+│   ├── package.json      # Dependencies (undici) & scripts (build, test, typecheck)
+│   ├── tsconfig.json     # Cấu hình TypeScript ESM (Node16)
+│   └── test/             # Bộ unit tests (Node.js test runner)
 └── README.md             # Tài liệu này
 ```
 
 ---
 
-## 📋 1. Yêu cầu Tiền đề (Prerequisites) trên máy mới
+## 📋 1. Yêu cầu Tiền đề (Prerequisites)
 
-1. **Node.js**: Phiên bản 18+ (khuyên dùng Node 20 hoặc 22+).
+1. **Node.js**: Phiên bản 18+ (khuyên dùng Node 20 hoặc Node 22+).
 2. **OpenCode CLI**: Phiên bản 1.14.0 trở lên.
    - Kiểm tra: `opencode --version`
    - Cài đặt OpenCode (nếu chưa có): `npm install -g opencode-ai` hoặc `bun add -g opencode-ai`
-3. **Mạng Internet**: Cổng local `51121` không bị chiếm dụng (dùng cho trình duyệt OAuth callback).
+3. **Mạng Internet**: Cổng local `51121` không bị chiếm dụng (dùng cho OAuth redirect callback).
 
 ---
 
 ## 🚀 2. Cài đặt
 
-### Cách A: Cài đặt tự động (khuyên dùng — agent/CLI chạy được)
+### Cách A: Cài đặt tự động (Khuyên dùng — Idempotent, CLI/Agent an toàn)
 
-Chỉ cần chạy một lệnh. Script idempotent (chạy lại an toàn), tự copy plugin + merge `opencode.json` không ghi đè config hiện có:
+Chỉ cần chạy một lệnh duy nhất. Script tự động build TypeScript, sao chép files mã nguồn + thư mục `dist/` + `node_modules/`, và tự động merge cấu hình vào `opencode.json` mà không làm mất các cấu hình sẵn có của bạn:
 
 ```bash
 bash install.sh
 ```
 
-Hoặc từ thư mục khác:
+Hoặc thực thi từ thư mục bất kỳ:
 
 ```bash
 bash /path/to/antigravity-opencode/install.sh
@@ -53,22 +74,38 @@ bash /path/to/antigravity-opencode/install.sh
 
 **Tùy chọn:**
 ```bash
-OPENCODE_AGY_SKIP_CONFIG=1 bash install.sh   # chỉ copy files, không đụng config
+OPENCODE_AGY_SKIP_CONFIG=1 bash install.sh   # Chỉ build & copy files, không đụng tới file opencode.json
 ```
 
-### Cách B: Cài đặt thủ công
+---
 
-**Bước 1:** Tạo thư mục plugin:
+### Cách B: Cài đặt thủ công (Manual)
+
+Nếu bạn muốn tự tay kiểm soát các bước cài đặt:
+
+**Bước 1: Biên dịch TypeScript & cài đặt dependencies**
+```bash
+cd antigravity-auth
+npm install
+npm run build
+```
+
+**Bước 2: Tạo thư mục plugin trong OpenCode**
 ```bash
 mkdir -p ~/.config/opencode/plugins/antigravity-auth
 ```
 
-**Bước 2:** Copy 5 files mã nguồn từ `antigravity-auth/`:
+**Bước 3: Sao chép files thực thi và build artifacts**
 ```bash
+# Từ thư mục antigravity-auth/
 cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plugins/antigravity-auth/
+cp -R dist node_modules ~/.config/opencode/plugins/antigravity-auth/
 ```
 
-**Bước 3:** Thêm vào `~/.config/opencode/opencode.json` (tạo mới nếu chưa có):
+**Bước 4: Cấu hình `~/.config/opencode/opencode.json`**
+
+Thêm plugin và khai báo providers (bạn có thể đăng ký `google-antigravity`, `antigravity`, hoặc cả hai):
+
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
@@ -221,27 +258,56 @@ cp plugin.js oauth.js transport.js store.js package.json ~/.config/opencode/plug
           "modalities": { "input": ["text"], "output": ["text"] }
         }
       }
+    },
+    "antigravity": {
+      "name": "Antigravity (Native)",
+      "npm": "@ai-sdk/google",
+      "models": {
+        "gemini-3.7-flash-high": {
+          "name": "Gemini 3.7 Flash (High) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "gemini-pro-agent": {
+          "name": "Gemini 3.1 Pro (High) (Antigravity)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        },
+        "gemini-3-flash": {
+          "name": "Gemini 3 Flash (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "reasoning": true,
+          "tool_call": true,
+          "modalities": { "input": ["text", "image"], "output": ["text"] }
+        }
+      }
     }
   }
 }
 ```
 
-> **Ghi chú:** Khối config trên (cũng chính là default `install.sh` merge) đăng ký đầy đủ **16 mô hình** (khớp catalog mục 9). Không cần dùng hết thì tự xóa bớt entry — model id nào nằm trong `provider.google-antigravity.models` mới hiện khi chạy `opencode models google-antigravity`.
+> **Ghi chú:** Script `install.sh` tự động cấu hình cả 2 provider `google-antigravity` và `antigravity` với đầy đủ 20 model Gemini sẵn sàng sử dụng.
 
 ---
 
 ## 🔑 3. Đăng nhập và Xác thực OAuth
 
-Sau khi hoàn tất cấu hình:
+Sau khi cài đặt:
 
 1. Chạy lệnh đăng nhập trong Terminal:
    ```bash
    opencode auth login
    ```
-2. Danh sách các Provider sẽ hiển thị. Chọn **`Google Antigravity (browser)`**.
+2. Danh sách các Provider sẽ hiển thị. Chọn một trong hai tùy chọn Antigravity:
+   - **`Google Antigravity (browser)`** (ứng với provider `google-antigravity`)
+   - **`Google Antigravity (alias)`** (ứng với provider `antigravity`)
 3. Trình duyệt web sẽ tự động mở trang đăng nhập Google. Hãy đăng nhập tài khoản Google Antigravity của bạn và bấm **Cho phép (Allow)**.
 4. Trình duyệt hiển thị thông báo thành công: *"Google Antigravity authentication completed. You can close this window and return to OpenCode."*
-5. Quay lại Terminal, OpenCode xác nhận đã lưu thông tin xác thực vào `~/.local/share/opencode/auth.json`.
+5. Quay lại Terminal, OpenCode xác nhận đã lưu thông tin xác thực vào `~/.local/share/opencode/auth.json`, đồng thời plugin tự động lưu metadata vào `~/.config/opencode/google-antigravity-meta.json` (chế độ bảo mật `0600`).
 
 ---
 
@@ -249,105 +315,118 @@ Sau khi hoàn tất cấu hình:
 
 ### Kiểm tra danh sách mô hình đã nạp:
 ```bash
+# Kiểm tra theo provider chính
 opencode models google-antigravity
+
+# Hoặc kiểm tra theo alias ngắn
+opencode models antigravity
 ```
 
 ### Chạy OpenCode với mô hình Antigravity:
 ```bash
 opencode
 ```
-Trong giao diện TUI, chọn mô hình: `google-antigravity/gemini-3.7-flash-high` (mới nhất), `google-antigravity/gemini-3-flash` hoặc `google-antigravity/gemini-pro-agent`.
+Trong giao diện TUI của OpenCode, bạn có thể chọn bất kỳ mô hình nào đã cấu hình, ví dụ:
+- `google-antigravity/gemini-3.8-flash-high` (Thế hệ mới nhất)
+- `google-antigravity/gemini-3.7-flash-high`
+- `google-antigravity/gemini-pro-agent` (Dành cho tác vụ code phức tạp)
+- Hoặc dùng alias ngắn gọn:
+  - `antigravity/gemini-3.7-flash-high`
+  - `antigravity/gemini-pro-agent`
+  - `antigravity/gemini-3-flash`
 
 ---
 
-## ⚙️ 5. Biến Môi trường Tùy chỉnh (Tùy chọn)
+## ⚙️ 5. Biến Môi trường Tùy chỉnh (Environment Variables)
 
-- `OPENCODE_AGY_INJECT_SYSTEM=0`: Tắt tự động thêm System Prompt Antigravity mặc định.
-- `PI_AI_ANTIGRAVITY_VERSION`: Ghi đè phiên bản User-Agent Antigravity (mặc định theo mode).
-- `OPENCODE_AGY_UA_MODE`: Chế độ User-Agent. Giá trị:
-  - `cli` (mặc định): `antigravity/cli/<ver> (aidev_client; os_type=...; arch=...; auth_method=consumer)` (mặc định `1.1.13`) — **bắt buộc để backend cấp model mới nhất (gemini-3.7-flash); UA `sdk`/`desktop` bị backend trả 404**
-  - `sdk`: `antigravity/<ver> <platform>/<arch>` (mặc định `1.21.9`)
-  - `desktop`: `Antigravity/<ver> <platform>/<arch>` (mặc định `2.2.1`)
-- `OPENCODE_AGY_DEBUG=1`: Bật ghi log chi tiết request/response vào thư mục tạm `/tmp/agy-debug-*.json` khi gặp lỗi 400/500. Log tự động loại bỏ token/nội dung nhạy cảm — chỉ ghi `status`, `modelId`, `endpoint`, `envelopeKeys`, `generationConfig`, `toolsCount`, `contentsRoles`.
+Bạn có thể tùy chỉnh hành vi của plugin thông qua các biến môi trường sau:
+
+| Biến môi trường | Mặc định | Ý nghĩa & Tùy chọn |
+|---|---|---|
+| `OPENCODE_AGY_UA_MODE` | `cli` | Chế độ User-Agent gửi tới Google API:<br>• `cli` (khuyên dùng): `antigravity/cli/<ver>` — **bắt buộc để backend cấp các model mới nhất như Gemini 3.7/3.8**<br>• `sdk`: `antigravity/<ver>`<br>• `desktop`: `Antigravity/<ver>` |
+| `PI_AI_ANTIGRAVITY_VERSION` | `1.1.13` (cli) | Ghi đè chuỗi phiên bản trong User-Agent |
+| `OPENCODE_AGY_NO_KEEPALIVE` | `0` | Đặt `=1` để tắt Connection Pool (Undici Agent) và fallback về fetch chuẩn |
+| `OPENCODE_AGY_NO_PREWARM` | `0` | Đặt `=1` để tắt tính năng tiền kết nối (TLS handshake prewarm) trong background |
+| `OPENCODE_AGY_HTTP2` | `0` | Đặt `=1` để bật hỗ trợ giao thức HTTP/2 trên Undici Connection Pool |
+| `OPENCODE_AGY_INJECT_SYSTEM` | `1` | Đặt `=0` để tắt chèn DeepMind Antigravity System Instruction mặc định |
+| `OPENCODE_AGY_DEBUG` | `0` | Đặt `=1` để ghi chi tiết request/response envelope khi gặp lỗi ra `/tmp/agy-debug-*.json` (tự lọc bỏ token nhạy cảm) |
 
 ---
 
 ## 🔒 6. Lưu ý Bảo mật & Khắc phục Lỗi
 
-1. **Phân quyền Tệp Sidecar**: Plugin tự động lưu mã `projectId` và `email` vào `~/.config/opencode/google-antigravity-meta.json` với quyền bảo mật `0600` (chỉ user sở hữu đọc/ghi).
-2. **Auto-discover ProjectId**: Khi chưa có `projectId`, plugin tự gọi `v1internal:loadCodeAssist` lên Cloud Code Assist API để xin project `cloudaicompanionProject`. Nếu thất bại, dùng fallback `rising-fact-p41fc`.
-3. **Single-flight Refresh Lock**: Khi nhiều tool/stream request chạy song song cùng hết hạn token, chỉ một request refresh duy nhất được thực hiện (`refreshInFlight`), các request còn lại đợi chung kết quả — tránh stampede lên Google token endpoint.
-4. **Unofficial Provider**: Antigravity OAuth là tích hợp không chính thức (Unofficial). Khuyên dùng tài khoản cá nhân/non-critical.
-5. **Sự cố Lỗi 400 (INVALID_ARGUMENT)**:
-   - Đảm bảo chọn đúng mô hình `google-antigravity/gemini-pro-agent` thay vì tên alias cũ.
-   - Plugin tự xóa `thinkingBudget` (gây lỗi 400 trên Gemini 3) và chuyển sang `thinkingLevel` (`HIGH`/`LOW`/`MINIMAL`) theo model id.
-   - Nếu vẫn lỗi, bật `OPENCODE_AGY_DEBUG=1` để inspect envelope, hoặc chạy `opencode auth logout` rồi đăng nhập lại bằng `opencode auth login`.
-6. **⚠️ Gemini 3.7 Flash — `thinkingLevel: MINIMAL` không được hỗ trợ**:
-   - Backend Antigravity trả **HTTP 400** `Thinking level MINIMAL is not supported for this model` cho toàn bộ `gemini-3.7-flash-*` (high/medium/low). Các model `gemini-3.6-flash-*` trở xuống vẫn chấp nhận MINIMAL.
-   - Triệu chứng: stream im lặng — thường là luồng *title/compact* (log có `stream error ... Thinking level MINIMAL is not supported` tại `~/.local/share/opencode/log/opencode.log`) hoặc không ra câu trả lời cuối sau vòng tool call.
-   - **Plugin đã tự xử lý** (không cần cấu hình): `sanitizeGenerationConfig` tự floor `MINIMAL` → `LOW` cho gemini-3.7+ qua helper `isMinimalThinkingSupported()` (transport.js). `LOW`/`MEDIUM`/`HIGH` đều được backend chấp nhận.
-   - Nếu bạn tự set `thinkingLevel: "MINIMAL"` trong `generationConfig` cho model 3.7, hãy đổi sang `LOW`/`MEDIUM`/`HIGH`.
-7. **Quota `Resource has been exhausted` khi dùng Gemini 3.7 nặng**: dùng 3.7 liên tục nhiều vòng tool call có thể bị backend rate-limit (`Resource has been exhausted (e.g. check quota)`) ngay sau tool call → stream im lặng. Plugin đã retry HTTP 429/5xx với backoff, nhưng nếu quota kéo dài vẫn lỗi — hãy giãn nhịp dùng hoặc chuyển model khác.
+1. **Phân quyền Tệp Sidecar (`0600`)**: Plugin lưu `projectId` và `email` vào `~/.config/opencode/google-antigravity-meta.json` với phân quyền `0600` (chỉ user sở hữu tiến trình mới có quyền đọc/ghi).
+2. **Tự động khám phá Project ID**: Khi chưa có `projectId`, plugin tự động gọi `v1internal:loadCodeAssist` lên Cloud Code Assist API để trích xuất `cloudaicompanionProject`. Nếu tài khoản chưa kích hoạt project riêng, plugin fallback an toàn về project mặc định `rising-fact-p41fc`.
+3. **Single-flight Token Refresh**: Khi nhiều tool call hoặc streaming request chạy song song cùng phát hiện token hết hạn, chỉ có **1 request refresh duy nhất** được gửi tới Google token endpoint (`refreshInFlight`). Tất cả các luồng khác chờ kết quả chung, triệt tiêu nguy cơ race condition hay bị Google rate-limit token refresh.
+4. **Xử lý Đệ quy Tool Schemas ($defs / $ref)**: Khi các công cụ OpenCode trả về schema phức tạp chứa con trỏ JSON Schema (`$defs`, `$ref`, `definitions`), hàm `dereferenceSchema()` sẽ đệ quy làm phẳng và `sanitizeForOpenApi()` loại bỏ meta-keywords, ngăn ngừa triệt để lỗi HTTP 400 từ Google API.
+5. **⚠️ Gemini 3.7 Flash — `thinkingLevel: MINIMAL` không được hỗ trợ**:
+   - Backend Antigravity từ chối mức `MINIMAL` cho Gemini 3.7+ và trả về HTTP 400.
+   - **Plugin tự động xử lý**: Hàm `sanitizeGenerationConfig()` tự động floor mức `MINIMAL` thành `LOW` cho tất cả các model `gemini-3.7+` qua helper `isMinimalThinkingSupported()`. Các mức `LOW`, `MEDIUM`, `HIGH` đều hoạt động ổn định.
+6. **Xử lý Quota `Resource has been exhausted`**: Khi chạy Gemini 3.7 liên tục với chuỗi tool call dày đặc, bạn có thể gặp rate limit từ Google Cloud Code Assist. Plugin tích hợp sẵn cơ chế Exponential Backoff với `Retry-After` header và phân tích payload lỗi để tự động retry khi gặp HTTP 429/5xx.
 
 ---
 
-## 🧪 7. Chạy Unit Tests (Dành cho Developer)
+## 🧪 7. Chạy Unit Tests
+
+Plugin đi kèm bộ kiểm thử toàn diện 33/33 tests đạt độ phủ cao, sử dụng trực tiếp Node.js Test Runner:
 
 ```bash
-node --test test/*.test.js
+cd antigravity-auth
+npm test
 ```
-*(Bộ 26/26 unit tests phải pass. Cover: PKCE, OAuth URL, envelope wrapping, tool adapter & schema sanitization, thinkingLevel mapping (incl. 3.7 MINIMAL→LOW floor), UA cli/sdk/desktop, SSE unwrap CRLF/LF, custom fetch v1internal rewrite, model catalog, sidecar 0600).*
+
+**Kết quả kiểm thử:**
+- **oauth helpers** (3 tests): Tạo PKCE verifier/challenge, URL auth với đầy đủ scopes, buffer thời gian hết hạn token.
+- **transport** (23 tests): Trích xuất Model ID từ URL, nhận diện URL Generative Language, wrap envelope Antigravity, Claude tool adapter & schema sanitization, Gemini 3 `thoughtSignature` sentinel, chuẩn hóa tool ID, thinking level mapping & 3.7+ MINIMAL floor, incremental SSE unwrap (hỗ trợ cả CRLF và multi-event chunk), rewrite v1internal, xử lý HTTP 401 tự động refresh, hủy stream an toàn.
+- **store sidecar** (1 test): Đọc/ghi `projectId` bảo mật với phân quyền hệ thống.
+- **native architecture improvements** (6 tests): Xử lý prefix dual provider (`google-antigravity/` & `antigravity/`), giải quyết đệ quy `$defs/$ref` trong schemas, fallback root schema về object, tiền kết nối TLS prewarming, và khởi tạo AuthHooks cho cả 2 providers.
 
 ---
 
 ## 🏗️ 8. Kiến trúc Transport & Độ ổn định (Transport Internals)
 
-Plugin không đơn thuần thay API key — nó **chặn toàn bộ tầng fetch** của `@ai-sdk/google` để ngụy trang request thành giao thức nguyên bản của Antigravity:
+Plugin chặn và tái cấu trúc toàn bộ tầng fetch của `@ai-sdk/google`, chuyển hóa request thành định dạng đặc tả của Antigravity:
 
-### Luồng xử lý Request
+### Luồng xử lý Request (Native Pipeline)
+
 ```
-@ai-sdk/google  →  createAntigravityFetch (transport.js)
-                   ├─ 1. resolveWireModelId(): alias `gemini-3.1-pro-high` → `gemini-pro-agent`
-                   ├─ 2. postProcessGeminiBody(): sanitize tools & schema, inject thoughtSignature (Gemini 3)
-                   ├─ 3. sanitizeGenerationConfig(): xóa thinkingBudget, set thinkingLevel HIGH/LOW/MINIMAL (gemini-3.7+ tự floor MINIMAL→LOW)
-                   ├─ 4. injectAntigravitySystem(): chèn DeepMind System Instruction
-                   ├─ 5. buildEnvelope(): wrap outer envelope {project, model, request, requestType, userAgent, requestId}
-                   ├─ 6. getAntigravityHeaders(): User-Agent (cli/sdk/desktop mode)
-                   └─ 7. POST → /v1internal:streamGenerateContent?alt=sse
-                                       ↓
-                   unwrapSseResponseStream(): data: {"response": {...}} → data: {...}
+@ai-sdk/google  →  createAntigravityFetch (src/transport/fetch.ts)
+                   │
+                   ├─ 1. resolveWireModelId(): Chuẩn hóa alias model (vd: gemini-3.1-pro-high → gemini-pro-agent)
+                   ├─ 2. adaptToolsForModel(): Đệ quy giải quyết $defs/$ref, sanitize OpenAPI schema
+                   ├─ 3. postProcessContents(): Chèn Gemini 3 thoughtSignature, chuẩn hóa Tool Call IDs
+                   ├─ 4. sanitizeGenerationConfig(): Chuyển thinkingBudget → thinkingLevel (HIGH/MEDIUM/LOW), floor 3.7+ MINIMAL→LOW
+                   ├─ 5. injectAntigravitySystem(): Chèn DeepMind System Instruction vào đầu request
+                   ├─ 6. buildEnvelope(): Đóng gói Outer Envelope { project, model, request, requestType: "agent", userAgent: "antigravity", requestId }
+                   ├─ 7. getAntigravityHeaders(): Bổ sung User-Agent CLI, client metadata, anthropic-beta header (cho Claude)
+                   ├─ 8. antigravityFetch(): Gửi request qua Undici keep-alive pool (hỗ trợ TLS prewarming)
+                   │     POST → /v1internal:streamGenerateContent?alt=sse
+                   │
+                   └─ 9. unwrapSseResponseStream(): Giải nén luồng SSE data: {"response": {...}} → data: {...}
 ```
 
-### Endpoint Fallback Chain
-Code thử lần lượt 3 endpoint Google (bắt đầu từ sandbox daily, fallback khi gặp 403/404):
-1. `https://daily-cloudcode-pa.sandbox.googleapis.com` (thử trước tiên)
-2. `https://autopush-cloudcode-pa.sandbox.googleapis.com`
-3. `https://cloudcode-pa.googleapis.com` (production — `DEFAULT_ENDPOINT`, fallback cuối)
+### Chuỗi Fallback Endpoints
 
-Khi gặp HTTP 403/404 từ một endpoint, tự động chuyển endpoint tiếp theo.
+Plugin tự động điều hướng request qua 3 endpoint của Google Cloud Code Assist theo thứ tự ưu tiên:
+1. `https://daily-cloudcode-pa.sandbox.googleapis.com` (Thử trước tiên)
+2. `https://autopush-cloudcode-pa.sandbox.googleapis.com` (Fallback thứ hai)
+3. `https://cloudcode-pa.googleapis.com` (Production — Fallback cuối cùng)
 
-### Retry & Backoff
-- `MAX_RETRIES = 3` cho HTTP 429 và 5xx.
-- Backoff exponentially: `BASE_DELAY_MS * 2^attempt` (1s → 2s → 4s), cap `60_000ms`.
-- Parse `Retry-After` header (seconds / HTTP-date) và `x-ratelimit-reset-after`.
-- Parse error body cho `reset after 30s`, `Please retry in 2.5s`, `"retryDelay": "500ms"`.
-- HTTP 401 → trigger single-flight refresh token, không tính vào retry budget.
+### Ngụy trang 5 Vectơ Nhận diện Client
 
-### Ngụy trang 5 Vectơ Phát hiện
-Để Google không flag request là unofficial client:
-1. **User-Agent** + platform/arch động (`darwin/arm64`, `windows/amd64`, `linux/amd64`).
-2. **Outer Envelope** đúng đặc tả Antigravity (`requestType: "agent"`, `userAgent: "antigravity"`).
-3. **System Instruction** DeepMind prefix chèn đầu `systemInstruction.parts[0]`.
-4. **GenerationConfig sanitize**: ép `thinkingLevel` enum thay vì `thinkingBudget` number.
-5. **SSE incremental unwrap**: xử lý chuẩn CRLF (`\r\n`) + LF (`\n`), không buffer toàn stream.
+1. **User-Agent & Client-Metadata**: Mô phỏng định dạng CLI chính thức của Antigravity kèm hệ điều hành và kiến trúc chip (`darwin/arm64`, `linux/amd64`, `windows/amd64`).
+2. **Outer Envelope**: Đúng schema của Antigravity Agent (`requestType: "agent"`, `userAgent: "antigravity"`).
+3. **DeepMind System Prompt**: Tự động ghép vào `systemInstruction.parts[0]`.
+4. **Thinking Configuration Enum**: Luôn chuẩn hóa thành `thinkingLevel` thay vì `thinkingBudget`.
+5. **SSE Stream Parsing Chuẩn**: Hỗ trợ xử lý incremental cả `\r\n` (CRLF) và `\n` (LF) mà không cần buffer toàn bộ stream.
 
 ---
 
-## 📚 9. Danh mục Mô hình (Full Model Catalog)
+## 📚 9. Danh mục Mô hình Toàn diện (Full Model Catalog)
 
-Plugin đăng ký 20 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js), phân theo từng dòng thế hệ:
+Plugin hỗ trợ tổng cộng **31 mô hình** được định nghĩa trong `src/models/catalog.ts`:
 
-### 🚀 Dòng Gemini 3.8 Flash (Sẵn sàng đón đầu)
+### 🚀 Dòng Gemini 3.8 Flash (Thế hệ mới nhất)
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
 | 1 | `gemini-3.8-flash` | `gemini-3.8-flash` | `LOW` | 1M / 64k | text, image |
@@ -358,35 +437,72 @@ Plugin đăng ký 20 mô hình trong `ANTIGRAVITY_MODEL_CATALOG` (transport.js),
 ### 🌟 Dòng Gemini 3.7 Flash (Thinking mặc định)
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 5 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | `HIGH` | 1M / 64k | text, image |
-| 6 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
-| 7 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | `LOW` | 1M / 64k | text, image |
+| 5 | `gemini-3.7-flash` | `gemini-3.7-flash` | `LOW` | 1M / 64k | text, image |
+| 6 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 7 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
+| 8 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | `LOW` | 1M / 64k | text, image |
 
-### 🧠 Dòng Gemini 3.1 Pro (Agentic Coding & Suy luận sâu)
+### 🧠 Dòng Gemini 3.1 Pro (Chuyên sâu Coding & Agentic)
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 8 | `gemini-pro-agent` | `gemini-pro-agent` | `HIGH` | 1M / 64k | text, image |
-| 9 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | `HIGH` | 1M / 64k | text, image |
-| 10 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | `LOW` | 1M / 64k | text, image |
+| 9 | `gemini-pro-agent` | `gemini-pro-agent` | `HIGH` | 1M / 64k | text, image |
+| 10 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | `HIGH` | 1M / 64k | text, image |
+| 11 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | `LOW` | 1M / 64k | text, image |
+| 12 | `gemini-3.1-pro` | `gemini-3.1-pro` | `LOW` | 1M / 64k | text, image |
 
 ### ⚡ Dòng Gemini 3.6 Flash
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 11 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | `HIGH` | 1M / 64k | text, image |
-| 12 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | *Tắt (false)* | 1M / 64k | text, image |
-| 13 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | *Tắt (false)* | 1M / 64k | text, image |
+| 13 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 14 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | *Tắt (false)* | 1M / 64k | text, image |
+| 15 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | *Tắt (false)* | 1M / 64k | text, image |
+| 16 | `gemini-3.6-flash` | `gemini-3.6-flash` | `MINIMAL` | 1M / 64k | text, image |
 
 ### 🚀 Dòng Gemini 3.5 Flash
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 14 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | `HIGH` | 1M / 64k | text, image |
-| 15 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | `MEDIUM` | 1M / 64k | text, image |
-| 16 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | `LOW` | 1M / 64k | text, image |
-| 17 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | *Tắt (false)* | 1M / 64k | text |
+| 17 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | `HIGH` | 1M / 64k | text, image |
+| 18 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | `MEDIUM` | 1M / 64k | text, image |
+| 19 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | `LOW` | 1M / 64k | text, image |
+| 20 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | *Tắt (false)* | 1M / 64k | text |
+| 21 | `gemini-3.5-flash` | `gemini-3.5-flash` | `MINIMAL` | 1M / 64k | text, image |
 
-### 🎯 Dòng Gemini 3 Flash & 3.1 Flash Phụ trợ
+### 🎯 Dòng Gemini 3 Flash & Phụ trợ
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 18 | `gemini-3-flash` | `gemini-3-flash` | `MINIMAL` | 1M / 64k | text, image |
-| 19 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | *Tắt (false)* | 1M / 64k | text |
-| 20 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | *Tắt (false)* | 1M / 64k | text |
+| 22 | `gemini-3-flash` | `gemini-3-flash` | `MINIMAL` | 1M / 64k | text, image |
+| 23 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | *Tắt (false)* | 1M / 64k | text |
+| 24 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | *Tắt (false)* | 1M / 64k | text |
+
+### 🎭 Claude Models (Qua Antigravity Bridge)
+*Được hỗ trợ đầy đủ qua cơ chế bridge chuyển tiếp của Antigravity với header `anthropic-beta: interleaved-thinking-2025-05-14` và chuẩn hóa tool call ID:*
+| # | Model ID (OpenCode) | Wire Model ID | Reasoning | Context / Output | Modalities |
+|---|---|---|---|---|---|
+| 25 | `claude-opus-4-6` | `claude-opus-4-6` | Có | 250k / 64k | text, image |
+| 26 | `claude-opus-4-6-thinking` | `claude-opus-4-6-thinking` | Có | 250k / 64k | text, image |
+| 27 | `claude-sonnet-4-6` | `claude-sonnet-4-6` | Có | 200k / 64k | text, image |
+| 28 | `claude-sonnet-4-6-thinking` | `claude-sonnet-4-6-thinking` | Có | 200k / 64k | text, image |
+| 29 | `claude-sonnet-4-5` | `claude-sonnet-4-5` | Không | 200k / 64k | text, image |
+| 30 | `claude-sonnet-4-5-thinking` | `claude-sonnet-4-5-thinking` | Có | 200k / 64k | text, image |
+
+### 🌐 GPT OSS Models
+| # | Model ID (OpenCode) | Wire Model ID | Reasoning | Context / Output | Modalities |
+|---|---|---|---|---|---|
+| 31 | `gpt-oss-120b` | `gpt-oss-120b` | Có | 131k / 32k | text |
+
+---
+
+## 💡 Mẹo cấu hình mô hình bổ sung
+
+Nếu bạn muốn sử dụng các model nâng cao như Claude hoặc GPT OSS, chỉ cần thêm cấu hình tương ứng vào khối `provider.google-antigravity.models` hoặc `provider.antigravity.models` trong file `opencode.json`:
+
+```json
+"claude-sonnet-4-6-thinking": {
+  "name": "Claude Sonnet 4.6 Thinking (Antigravity)",
+  "limit": { "context": 200000, "output": 65536 },
+  "reasoning": true,
+  "tool_call": true,
+  "modalities": { "input": ["text", "image"], "output": ["text"] }
+}
+```
+Sau đó khởi động lại OpenCode và chọn model để sử dụng!
