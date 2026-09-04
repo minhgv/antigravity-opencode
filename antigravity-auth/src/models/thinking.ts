@@ -2,6 +2,7 @@
  * Thinking level configuration & sanitization for Gemini models.
  */
 import { ANTIGRAVITY_MODEL_CATALOG } from "./catalog.js";
+import { resolveWireModelId } from "./aliases.js";
 import type { GenerationConfig } from "../types/index.js";
 
 export function isGemini3Model(modelId: string): boolean {
@@ -55,10 +56,11 @@ export function isMinimalThinkingSupported(modelId: string): boolean {
 }
 
 export function getDefaultThinkingLevel(modelId: string): "HIGH" | "MEDIUM" | "LOW" | "MINIMAL" {
-  if (isGemini3High(modelId)) return "HIGH";
-  if (isGemini3Medium(modelId)) return "MEDIUM";
-  if (isGemini3Low(modelId)) return "LOW";
-  return isMinimalThinkingSupported(modelId) ? "MINIMAL" : "LOW";
+  const resolved = resolveWireModelId(modelId);
+  if (isGemini3High(resolved)) return "HIGH";
+  if (isGemini3Medium(resolved)) return "MEDIUM";
+  if (isGemini3Low(resolved)) return "LOW";
+  return isMinimalThinkingSupported(resolved) ? "MINIMAL" : "LOW";
 }
 
 /** Alias for backward compatibility with existing tests */
@@ -76,14 +78,15 @@ export function sanitizeGenerationConfig<T extends GenerationConfig>(
   modelId: string,
 ): T {
   if (!generationConfig || typeof generationConfig !== "object") return generationConfig as unknown as T;
-  const id = String(modelId || "").toLowerCase();
-  const isGemini3 = isGemini3Model(modelId) || isGeminiProHigh(modelId);
+  const resolved = resolveWireModelId(modelId);
+  const id = String(resolved || "").toLowerCase();
+  const isGemini3 = isGemini3Model(resolved) || isGeminiProHigh(resolved);
   if (!isGemini3 && !id.includes("gemini-3") && id !== "gemini-pro-agent") return generationConfig;
 
   const next = { ...generationConfig } as T;
   delete next.thinkingBudget;
 
-  const defaultLevel = getDefaultThinkingLevel(modelId);
+  const defaultLevel = getDefaultThinkingLevel(resolved);
 
   if (next.thinkingConfig && typeof next.thinkingConfig === "object") {
     const tc = { ...next.thinkingConfig };
@@ -95,7 +98,7 @@ export function sanitizeGenerationConfig<T extends GenerationConfig>(
       let level = tc.thinkingLevel.toUpperCase();
       if (level === "MIN") level = "MINIMAL";
       if (level === "MED") level = "MEDIUM";
-      if (level === "MINIMAL" && !isMinimalThinkingSupported(modelId)) {
+      if (level === "MINIMAL" && !isMinimalThinkingSupported(resolved)) {
         level = "LOW";
       }
       tc.thinkingLevel = level;
@@ -105,7 +108,7 @@ export function sanitizeGenerationConfig<T extends GenerationConfig>(
     }
     next.thinkingConfig = tc;
   } else if (isGemini3) {
-    const catalogEntry = ANTIGRAVITY_MODEL_CATALOG[modelId];
+    const catalogEntry = ANTIGRAVITY_MODEL_CATALOG[resolved];
     if (!catalogEntry || catalogEntry.reasoning !== false) {
       next.thinkingConfig = {
         includeThoughts: true,

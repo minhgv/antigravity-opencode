@@ -13,6 +13,7 @@ import {
   isGeminiProLow,
 } from "../models/thinking.js";
 import { ANTIGRAVITY_MODEL_CATALOG } from "../models/catalog.js";
+import { resolveWireModelId } from "../models/aliases.js";
 import { dereferenceSchema, ensureRootObjectSchema, sanitizeForOpenApi } from "../utils/schema.js";
 import { injectAntigravitySystem } from "../utils/system.js";
 import type { AntigravityEnvelope, GeminiContent, GeminiPart } from "../types/index.js";
@@ -197,7 +198,8 @@ export function buildEnvelope(
   opts: BuildEnvelopeOptions,
 ): AntigravityEnvelope {
   const isAntigravity = opts.isAntigravity !== false;
-  let request = postProcessGeminiBody({ ...geminiBody }, opts.modelId);
+  const wireModelId = resolveWireModelId(opts.modelId);
+  let request = postProcessGeminiBody({ ...geminiBody }, wireModelId);
 
   if (opts.sessionId) {
     request.sessionId = opts.sessionId;
@@ -212,7 +214,7 @@ export function buildEnvelope(
   const hexRandom = randomBytes(4).toString("hex");
   return {
     project: opts.projectId,
-    model: opts.modelId,
+    model: wireModelId,
     request,
     ...(isAntigravity ? { requestType: "agent" } : {}),
     userAgent: isAntigravity ? "antigravity" : "opencode",

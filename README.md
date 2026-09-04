@@ -126,13 +126,6 @@ Thêm plugin và khai báo providers (bạn có thể đăng ký `google-antigra
       "name": "Google Antigravity",
       "npm": "@ai-sdk/google",
       "models": {
-        "gemini-3.8-flash": {
-          "name": "Gemini 3.8 Flash (Antigravity)",
-          "limit": { "context": 1048576, "output": 65536 },
-          "reasoning": true,
-          "tool_call": true,
-          "modalities": { "input": ["text", "image"], "output": ["text"] }
-        },
         "gemini-3.8-flash-high": {
           "name": "Gemini 3.8 Flash (High) (Antigravity)",
           "limit": { "context": 1048576, "output": 65536 },
@@ -490,71 +483,67 @@ Plugin tự động điều hướng request qua 3 endpoint của Google Cloud C
 
 ## 📚 9. Danh mục Mô hình Toàn diện (Full Model Catalog)
 
-Plugin hỗ trợ tổng cộng **31 mô hình** được định nghĩa trong `src/models/catalog.ts`:
+Plugin hỗ trợ danh mục mô hình chuẩn được định nghĩa trong `src/models/catalog.ts` kèm cơ chế tự động alias (`resolveWireModelId`) để tránh lỗi 404 cho các mã model không có hậu tố thinking:
 
 ### 🚀 Dòng Gemini 3.8 Flash (Thế hệ mới nhất)
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 1 | `gemini-3.8-flash` | `gemini-3.8-flash` | `LOW` | 1M / 64k | text, image |
-| 2 | `gemini-3.8-flash-high` | `gemini-3.8-flash-high` | `HIGH` | 1M / 64k | text, image |
-| 3 | `gemini-3.8-flash-medium` | `gemini-3.8-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
-| 4 | `gemini-3.8-flash-low` | `gemini-3.8-flash-low` | `LOW` | 1M / 64k | text, image |
+| 1 | `gemini-3.8-flash-high` | `gemini-3.8-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 2 | `gemini-3.8-flash-medium` | `gemini-3.8-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
+| 3 | `gemini-3.8-flash-low` | `gemini-3.8-flash-low` | `LOW` | 1M / 64k | text, image |
+*(Lưu ý: Nếu gọi mã `gemini-3.8-flash` trần, plugin sẽ tự động route an toàn sang `gemini-3.8-flash-high` để tránh lỗi HTTP 404 từ backend Google).*
 
 ### 🌟 Dòng Gemini 3.7 Flash (Thinking mặc định)
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 5 | `gemini-3.7-flash` | `gemini-3.7-flash` | `LOW` | 1M / 64k | text, image |
-| 6 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | `HIGH` | 1M / 64k | text, image |
-| 7 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
-| 8 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | `LOW` | 1M / 64k | text, image |
+| 4 | `gemini-3.7-flash-high` | `gemini-3.7-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 5 | `gemini-3.7-flash-medium` | `gemini-3.7-flash-medium` | `MEDIUM` | 1M / 64k | text, image |
+| 6 | `gemini-3.7-flash-low` | `gemini-3.7-flash-low` | `LOW` | 1M / 64k | text, image |
 
 ### 🧠 Dòng Gemini 3.1 Pro (Chuyên sâu Coding & Agentic)
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 9 | `gemini-pro-agent` | `gemini-pro-agent` | `HIGH` | 1M / 64k | text, image |
-| 10 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | `HIGH` | 1M / 64k | text, image |
-| 11 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | `LOW` | 1M / 64k | text, image |
-| 12 | `gemini-3.1-pro` | `gemini-3.1-pro` | `LOW` | 1M / 64k | text, image |
+| 7 | `gemini-pro-agent` | `gemini-pro-agent` | `HIGH` | 1M / 64k | text, image |
+| 8 | `gemini-3.1-pro-high` | `gemini-pro-agent` *(alias)* | `HIGH` | 1M / 64k | text, image |
+| 9 | `gemini-3.1-pro-low` | `gemini-3.1-pro-low` | `LOW` | 1M / 64k | text, image |
 
 ### ⚡ Dòng Gemini 3.6 Flash
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 13 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | `HIGH` | 1M / 64k | text, image |
-| 14 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | *Tắt (false)* | 1M / 64k | text, image |
-| 15 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | *Tắt (false)* | 1M / 64k | text, image |
-| 16 | `gemini-3.6-flash` | `gemini-3.6-flash` | `MINIMAL` | 1M / 64k | text, image |
+| 10 | `gemini-3.6-flash-high` | `gemini-3.6-flash-high` | `HIGH` | 1M / 64k | text, image |
+| 11 | `gemini-3.6-flash-medium` | `gemini-3.6-flash-medium` | *Tắt (false)* | 1M / 64k | text, image |
+| 12 | `gemini-3.6-flash-low` | `gemini-3.6-flash-low` | `LOW` | 1M / 64k | text, image |
 
 ### 🚀 Dòng Gemini 3.5 Flash
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 17 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | `HIGH` | 1M / 64k | text, image |
-| 18 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | `MEDIUM` | 1M / 64k | text, image |
-| 19 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | `LOW` | 1M / 64k | text, image |
-| 20 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | *Tắt (false)* | 1M / 64k | text |
-| 21 | `gemini-3.5-flash` | `gemini-3.5-flash` | `MINIMAL` | 1M / 64k | text, image |
+| 13 | `gemini-3-flash-agent` | `gemini-3-flash-agent` | `HIGH` | 1M / 64k | text, image |
+| 14 | `gemini-3.5-flash-low` | `gemini-3.5-flash-low` | `MEDIUM` | 1M / 64k | text, image |
+| 15 | `gemini-3.5-flash-extra-low` | `gemini-3.5-flash-extra-low` | `LOW` | 1M / 64k | text, image |
+| 16 | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | *Tắt (false)* | 1M / 64k | text |
 
 ### 🎯 Dòng Gemini 3 Flash & Phụ trợ
 | # | Model ID (OpenCode) | Wire Model ID | Thinking Level | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 22 | `gemini-3-flash` | `gemini-3-flash` | `MINIMAL` | 1M / 64k | text, image |
-| 23 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | *Tắt (false)* | 1M / 64k | text |
-| 24 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | *Tắt (false)* | 1M / 64k | text |
+| 17 | `gemini-3-flash` | `gemini-3-flash` | `MINIMAL` | 1M / 64k | text, image |
+| 18 | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | *Tắt (false)* | 1M / 64k | text |
+| 19 | `gemini-3.1-flash-image` | `gemini-3.1-flash-image` | *Tắt (false)* | 1M / 64k | text |
 
 ### 🎭 Claude Models (Qua Antigravity Bridge)
 *Được hỗ trợ đầy đủ qua cơ chế bridge chuyển tiếp của Antigravity với header `anthropic-beta: interleaved-thinking-2025-05-14` và chuẩn hóa tool call ID:*
 | # | Model ID (OpenCode) | Wire Model ID | Reasoning | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 25 | `claude-opus-4-6` | `claude-opus-4-6` | Có | 250k / 64k | text, image |
-| 26 | `claude-opus-4-6-thinking` | `claude-opus-4-6-thinking` | Có | 250k / 64k | text, image |
-| 27 | `claude-sonnet-4-6` | `claude-sonnet-4-6` | Có | 200k / 64k | text, image |
-| 28 | `claude-sonnet-4-6-thinking` | `claude-sonnet-4-6-thinking` | Có | 200k / 64k | text, image |
-| 29 | `claude-sonnet-4-5` | `claude-sonnet-4-5` | Không | 200k / 64k | text, image |
-| 30 | `claude-sonnet-4-5-thinking` | `claude-sonnet-4-5-thinking` | Có | 200k / 64k | text, image |
+| 20 | `claude-opus-4-6` | `claude-opus-4-6` | Có | 250k / 64k | text, image |
+| 21 | `claude-opus-4-6-thinking` | `claude-opus-4-6-thinking` | Có | 250k / 64k | text, image |
+| 22 | `claude-sonnet-4-6` | `claude-sonnet-4-6` | Có | 200k / 64k | text, image |
+| 23 | `claude-sonnet-4-6-thinking` | `claude-sonnet-4-6-thinking` | Có | 200k / 64k | text, image |
+| 24 | `claude-sonnet-4-5` | `claude-sonnet-4-5` | Không | 200k / 64k | text, image |
+| 25 | `claude-sonnet-4-5-thinking` | `claude-sonnet-4-5-thinking` | Có | 200k / 64k | text, image |
 
 ### 🌐 GPT OSS Models
 | # | Model ID (OpenCode) | Wire Model ID | Reasoning | Context / Output | Modalities |
 |---|---|---|---|---|---|
-| 31 | `gpt-oss-120b` | `gpt-oss-120b` | Có | 131k / 32k | text |
+| 26 | `gpt-oss-120b` | `gpt-oss-120b` | Có | 131k / 32k | text |
 
 ---
 

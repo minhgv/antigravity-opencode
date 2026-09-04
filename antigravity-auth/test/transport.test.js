@@ -223,7 +223,6 @@ describe("transport", () => {
   it("catalog has active and provisional Gemini models", () => {
     const ids = Object.keys(ANTIGRAVITY_MODEL_CATALOG);
     for (const need of [
-      "gemini-3.8-flash",
       "gemini-3.8-flash-high",
       "gemini-3.8-flash-medium",
       "gemini-3.8-flash-low",
@@ -235,6 +234,13 @@ describe("transport", () => {
     ]) {
       assert.ok(ids.includes(need), `missing ${need}`);
     }
+  });
+
+  it("resolves bare model aliases to supported wire models", () => {
+    assert.equal(resolveWireModelId("gemini-3.8-flash"), "gemini-3.8-flash-high");
+    assert.equal(resolveWireModelId("gemini-3.7-flash"), "gemini-3.7-flash-high");
+    assert.equal(resolveWireModelId("gemini-3.6-flash"), "gemini-3.6-flash-high");
+    assert.equal(resolveWireModelId("gemini-3.1-pro-high"), "gemini-pro-agent");
   });
 
   it("sanitizeGenerationConfig maps pro-high to thinkingLevel HIGH", () => {
@@ -253,7 +259,7 @@ describe("transport", () => {
     );
     assert.equal(env.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
   });
-  it("buildEnvelope injects appropriate thinking for gemini-3.8-flash variants", () => {
+  it("buildEnvelope injects appropriate thinking for gemini-3.8-flash variants and aliases bare model", () => {
     const envHigh = buildEnvelope(
       { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
       { projectId: "p", modelId: "gemini-3.8-flash-high" },
@@ -265,8 +271,8 @@ describe("transport", () => {
       { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
       { projectId: "p", modelId: "gemini-3.8-flash" },
     );
-    assert.equal(envBase.request.generationConfig.thinkingConfig.thinkingLevel, "LOW");
-    assert.equal(envBase.model, "gemini-3.8-flash");
+    assert.equal(envBase.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
+    assert.equal(envBase.model, "gemini-3.8-flash-high");
   });
 
   it("sanitizeGenerationConfig maps thinking level per model variant and floors 3.7+ MINIMAL", () => {
@@ -309,9 +315,9 @@ describe("transport", () => {
     assert.equal(t38Low.thinkingConfig.thinkingLevel, "LOW");
     assert.equal(t38Low.thinkingConfig.thinkingBudget, undefined);
 
-    // gemini-3.8-flash (base) maps to LOW
+    // gemini-3.8-flash (base alias) maps to HIGH (gemini-3.8-flash-high)
     const t38Base = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.8-flash");
-    assert.equal(t38Base.thinkingConfig.thinkingLevel, "LOW");
+    assert.equal(t38Base.thinkingConfig.thinkingLevel, "HIGH");
     assert.equal(t38Base.thinkingConfig.thinkingBudget, undefined);
 
     // explicit MINIMAL on 3.8 bumped to LOW (backend rejects MINIMAL)

@@ -6,13 +6,6 @@ import type { ModelCatalogEntry } from "../types/index.js";
 
 export const ANTIGRAVITY_MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
   // Gemini 3.8 Flash
-  "gemini-3.8-flash": {
-    name: "Gemini 3.8 Flash (Antigravity)",
-    limit: { context: 1048576, output: 65536 },
-    reasoning: true,
-    tool_call: true,
-    modalities: { input: ["text", "image"], output: ["text"] },
-  },
   "gemini-3.8-flash-high": {
     name: "Gemini 3.8 Flash (High) (Antigravity)",
     limit: { context: 1048576, output: 65536 },
@@ -36,13 +29,6 @@ export const ANTIGRAVITY_MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
   },
 
   // Gemini 3.7 Flash
-  "gemini-3.7-flash": {
-    name: "Gemini 3.7 Flash (Antigravity)",
-    limit: { context: 1048576, output: 65536 },
-    reasoning: true,
-    tool_call: true,
-    modalities: { input: ["text", "image"], output: ["text"] },
-  },
   "gemini-3.7-flash-high": {
     name: "Gemini 3.7 Flash (High) (Antigravity)",
     limit: { context: 1048576, output: 65536 },
@@ -114,13 +100,6 @@ export const ANTIGRAVITY_MODEL_CATALOG: Record<string, ModelCatalogEntry> = {
     name: "Gemini 3.6 Flash (Low) (Antigravity)",
     limit: { context: 1048576, output: 65536 },
     reasoning: false,
-    tool_call: true,
-    modalities: { input: ["text", "image"], output: ["text"] },
-  },
-  "gemini-3.6-flash": {
-    name: "Gemini 3.6 Flash (Antigravity)",
-    limit: { context: 1048576, output: 65536 },
-    reasoning: true,
     tool_call: true,
     modalities: { input: ["text", "image"], output: ["text"] },
   },

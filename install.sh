@@ -58,8 +58,7 @@ if (!Array.isArray(cfg.plugin)) cfg.plugin = [];
 if (!cfg.plugin.includes(entry)) cfg.plugin.push(entry);
 
 const MODELS = {
-  // Gemini 3.8 Flash (Provisional / Ready)
-  "gemini-3.8-flash": { name: "Gemini 3.8 Flash (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  // Gemini 3.8 Flash (3 mức Thinking chuẩn)
   "gemini-3.8-flash-high": { name: "Gemini 3.8 Flash (High) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.8-flash-medium": { name: "Gemini 3.8 Flash (Medium) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "gemini-3.8-flash-low": { name: "Gemini 3.8 Flash (Low) (Antigravity)", limit: { context: 1048576, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
@@ -105,7 +104,11 @@ for (const pId of ["google-antigravity", "antigravity"]) {
   cfg.provider[pId] = cfg.provider[pId] || {};
   cfg.provider[pId].name = cfg.provider[pId].name || (pId === "antigravity" ? "Antigravity (Native)" : "Google Antigravity");
   cfg.provider[pId].npm = cfg.provider[pId].npm || "@ai-sdk/google";
+  if (cfg.provider[pId].models) {
+    delete cfg.provider[pId].models["gemini-3.8-flash"];
+  }
   cfg.provider[pId].models = Object.assign({}, MODELS, cfg.provider[pId].models || {});
+  delete cfg.provider[pId].models["gemini-3.8-flash"];
 }
 fs.writeFileSync(configFile, JSON.stringify(cfg, null, 2) + "\n");
 NODE
