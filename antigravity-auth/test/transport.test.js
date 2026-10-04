@@ -112,7 +112,7 @@ describe("transport", () => {
         ],
       },
     ];
-    const adapted = adaptToolsForModel(tools, "claude-sonnet-4-5-thinking");
+    const adapted = adaptToolsForModel(tools, "claude-sonnet-5-5-thinking");
     assert.ok(adapted[0].functionDeclarations[0].parameters);
     assert.equal(adapted[0].functionDeclarations[0].parameters.$schema, undefined);
     assert.equal(adapted[0].functionDeclarations[0].parametersJsonSchema, undefined);
@@ -141,7 +141,7 @@ describe("transport", () => {
         ],
       },
     ];
-    const adapted = adaptToolsForModel(tools, "claude-sonnet-4-6");
+    const adapted = adaptToolsForModel(tools, "claude-sonnet-5-5");
     const [t1, t2, t3] = adapted[0].functionDeclarations;
     assert.equal(t1.parameters.type, "object");
     assert.deepEqual(t1.parameters.properties, {});
@@ -169,7 +169,7 @@ describe("transport", () => {
   });
 
   it("postProcessContents normalizes tool ids for claude", () => {
-    assert.equal(requiresToolCallId("claude-sonnet-4-5"), true);
+    assert.equal(requiresToolCallId("claude-sonnet-5-5"), true);
     assert.equal(normalizeToolCallId("a/b:c!"), "a_b_c_");
     const contents = [
       {
@@ -181,7 +181,7 @@ describe("transport", () => {
         parts: [{ functionResponse: { name: "bash", response: { output: "ok" }, id: "bad/id:1" } }],
       },
     ];
-    const out = postProcessContents(contents, "claude-sonnet-4-5");
+    const out = postProcessContents(contents, "claude-sonnet-5-5");
     assert.equal(out[0].parts[0].functionCall.id, "bad_id_1");
     assert.equal(out[1].parts[0].functionResponse.id, "bad_id_1");
   });
@@ -193,7 +193,7 @@ describe("transport", () => {
         parts: [{ text: "   " }, { text: "keep" }],
       },
     ];
-    const out = postProcessContents(contents, "claude-sonnet-4-5");
+    const out = postProcessContents(contents, "claude-sonnet-5-5");
     assert.equal(out[0].parts.length, 1);
     assert.equal(out[0].parts[0].text, "keep");
   });
@@ -218,7 +218,7 @@ describe("transport", () => {
     assert.match(hDesk["User-Agent"], /^Antigravity\//);
     delete process.env.OPENCODE_AGY_UA_MODE;
 
-    const h2 = getAntigravityHeaders("claude-opus-4-6-thinking");
+    const h2 = getAntigravityHeaders("claude-opus-5-5-thinking");
     assert.equal(h2["anthropic-beta"], "interleaved-thinking-2025-05-14");
   });
 
@@ -504,7 +504,7 @@ describe("transport", () => {
         parts: [{ functionResponse: { name: "readFile", response: { content: "data" } } }],
       },
     ];
-    const out = postProcessContents(contents, "claude-sonnet-4-5");
+    const out = postProcessContents(contents, "claude-sonnet-5-5");
     const fcId = out[0].parts[0].functionCall.id;
     const frId = out[1].parts[0].functionResponse.id;
     assert.ok(fcId);

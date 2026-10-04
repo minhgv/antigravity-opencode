@@ -7,7 +7,7 @@
 
 Plugin tích hợp xác thực **Google Antigravity OAuth** và **Cloud Code Assist API** trực tiếp vào **OpenCode** (v1.14+).
 
-Cung cấp toàn quyền truy cập hệ sinh thái **Gemini (Flash, Pro, Thinking)**, **Claude 4.5/4.6** và **GPT OSS** qua tài khoản Google Antigravity: **không cần API Key**, **giữ nguyên native tool calls** (`@ai-sdk/google`), và đạt **wire-format parity 1:1** với client Antigravity chính thức.
+Cung cấp toàn quyền truy cập hệ sinh thái **Gemini (Flash, Pro, Thinking)**, **Claude 5.5** và **GPT OSS** qua tài khoản Google Antigravity: **không cần API Key**, **giữ nguyên native tool calls** (`@ai-sdk/google`), và đạt **wire-format parity 1:1** với client Antigravity chính thức.
 
 ---
 
@@ -121,7 +121,7 @@ Plugin hỗ trợ đầy đủ các model với tính năng ánh xạ alias tự
 | **Gemini 3.6 Flash** | `gemini-3.6-flash-high`<br>`gemini-3.6-flash-medium`<br>`gemini-3.6-flash-low` | `gemini-3.6-flash-high`<br>`gemini-3.6-flash-medium`<br>`gemini-3.6-flash-low` | `HIGH`<br>Tắt<br>`LOW` | 1M / 64k | text, image |
 | **Gemini 3.5 / 3 Flash** | `gemini-3-flash-agent`<br>`gemini-3-flash`<br>`gemini-3.5-flash-lite` | `gemini-3-flash-agent`<br>`gemini-3-flash`<br>`gemini-3.5-flash-lite` | `HIGH`<br>`MINIMAL`<br>Tắt | 1M / 64k | text, image |
 | **Gemini Image** | `gemini-3-pro-image`<br>`gemini-3.1-flash-image` | `gemini-3-pro-image`<br>`gemini-3.1-flash-image` | Tắt | 1M / 64k | text, image |
-| **Claude Bridge** | `claude-opus-4-6-thinking`<br>`claude-sonnet-4-6-thinking`<br>`claude-sonnet-4-5-thinking` | *Giữ nguyên* | Bật | 200k–250k / 64k | text, image |
+| **Claude Bridge** | `claude-opus-5-5-thinking`<br>`claude-sonnet-5-5-thinking` | *Giữ nguyên* | Bật | 1M / 64k | text, image |
 | **GPT OSS** | `gpt-oss-120b` | `gpt-oss-120b` | Bật | 131k / 32k | text |
 
 > 📌 **Lưu ý:** Các mã không hậu tố như `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.1-pro` đều được tự động route về phiên bản `HIGH`/agent tương ứng để đảm bảo an toàn.
