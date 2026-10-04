@@ -29,7 +29,18 @@ export function isClaudeModel(modelId: string): boolean {
 
 export function isClaudeThinkingModel(modelId: string): boolean {
   const id = String(modelId || "").toLowerCase();
-  return id.startsWith("claude-") && (id.includes("thinking") || ANTIGRAVITY_MODEL_CATALOG[id]?.reasoning === true);
+  if (!id.startsWith("claude-")) return false;
+  // Claude 5.5 wire ids carry the effort tier as a suffix (-low/-medium/
+  // -high); all tiers are thinking-capable upstream, so the interleaved
+  // thinking beta applies to every suffix id. Retired `-thinking` ids and
+  // catalog-flagged logical ids keep the old behavior.
+  return (
+    id.endsWith("-low") ||
+    id.endsWith("-medium") ||
+    id.endsWith("-high") ||
+    id.includes("thinking") ||
+    ANTIGRAVITY_MODEL_CATALOG[id]?.reasoning === true
+  );
 }
 
 

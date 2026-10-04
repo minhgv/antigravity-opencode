@@ -121,10 +121,10 @@ Plugin hỗ trợ đầy đủ các model với tính năng ánh xạ alias tự
 | **Gemini 3.6 Flash** | `gemini-3.6-flash-high`<br>`gemini-3.6-flash-medium`<br>`gemini-3.6-flash-low` | `gemini-3.6-flash-high`<br>`gemini-3.6-flash-medium`<br>`gemini-3.6-flash-low` | `HIGH`<br>Tắt<br>`LOW` | 1M / 64k | text, image |
 | **Gemini 3.5 / 3 Flash** | `gemini-3-flash-agent`<br>`gemini-3-flash`<br>`gemini-3.5-flash-lite` | `gemini-3-flash-agent`<br>`gemini-3-flash`<br>`gemini-3.5-flash-lite` | `HIGH`<br>`MINIMAL`<br>Tắt | 1M / 64k | text, image |
 | **Gemini Image** | `gemini-3-pro-image`<br>`gemini-3.1-flash-image` | `gemini-3-pro-image`<br>`gemini-3.1-flash-image` | Tắt | 1M / 64k | text, image |
-| **Claude Bridge** | `claude-opus-5-5-thinking`<br>`claude-sonnet-5-5-thinking` | *Giữ nguyên* | Bật | 1M / 64k | text, image |
+| **Claude Bridge** | `claude-opus-5-5`<br>`claude-opus-5-5-thinking`<br>`claude-sonnet-5-5`<br>`claude-sonnet-5-5-thinking` | `claude-opus-5-5-medium`<br>`claude-opus-5-5-high`<br>`claude-sonnet-5-5-medium`<br>`claude-sonnet-5-5-high` | Bật | 1M / 64k | text, image |
 | **GPT OSS** | `gpt-oss-120b` | `gpt-oss-120b` | Bật | 131k / 32k | text |
 
-> 📌 **Lưu ý:** Các mã không hậu tố như `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.1-pro` đều được tự động route về phiên bản `HIGH`/agent tương ứng để đảm bảo an toàn.
+> 📌 **Lưu ý:** Các mã không hậu tố như `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.1-pro` đều được tự động route về phiên bản `HIGH`/agent tương ứng để đảm bảo an toàn. Với Claude 5.5, upstream dùng effort-tier suffix (`-low`/`-medium`/`-high`): id trần route về `-medium`, id `-thinking` route về `-high`, và các id 4.x đã retired tự động redirect về 5.5 `-medium`.
 
 ---
 

@@ -89,8 +89,11 @@ const MODELS = {
   "gemini-3.1-flash-lite": { name: "Gemini 3.1 Flash Lite (Antigravity)", limit: { context: 1048576, output: 65535 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } },
   "gemini-3.1-flash-image": { name: "Gemini 3.1 Flash Image (Antigravity)", limit: { context: 1000000, output: 64000 }, reasoning: false, tool_call: true, modalities: { input: ["text"], output: ["text"] } },
 
-  // Claude models via Antigravity Bridge
+  // Claude models via Antigravity Bridge (routed to upstream -medium/-high
+  // effort-tier wire ids by the plugin's alias table)
   "claude-sonnet-5-5": { name: "Claude Sonnet 5.5 (Antigravity)", limit: { context: 1000000, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "claude-sonnet-5-5-thinking": { name: "Claude Sonnet 5.5 Thinking (Antigravity)", limit: { context: 1000000, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
+  "claude-opus-5-5": { name: "Claude Opus 5.5 (Antigravity)", limit: { context: 1000000, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
   "claude-opus-5-5-thinking": { name: "Claude Opus 5.5 Thinking (Antigravity)", limit: { context: 1000000, output: 65536 }, reasoning: true, tool_call: true, modalities: { input: ["text", "image"], output: ["text"] } },
 
   // GPT OSS models
@@ -103,7 +106,9 @@ for (const pId of ["google-antigravity", "antigravity"]) {
   cfg.provider[pId].name = cfg.provider[pId].name || (pId === "antigravity" ? "Antigravity (Native)" : "Google Antigravity");
   cfg.provider[pId].npm = cfg.provider[pId].npm || "@ai-sdk/google";
   if (cfg.provider[pId].models) {
-    delete cfg.provider[pId].models["gemini-3.8-flash"];
+    for (const stale of ["gemini-3.8-flash", "claude-opus-4-7", "claude-opus-4-7-thinking", "claude-opus-4-6", "claude-opus-4-6-thinking", "claude-sonnet-4-6", "claude-sonnet-4-6-thinking", "claude-sonnet-4-5", "claude-sonnet-4-5-thinking"]) {
+      delete cfg.provider[pId].models[stale];
+    }
   }
   cfg.provider[pId].models = Object.assign({}, MODELS, cfg.provider[pId].models || {});
   delete cfg.provider[pId].models["gemini-3.8-flash"];

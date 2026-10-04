@@ -80,6 +80,15 @@ export function sanitizeGenerationConfig<T extends GenerationConfig>(
   if (!generationConfig || typeof generationConfig !== "object") return generationConfig as unknown as T;
   const resolved = resolveWireModelId(modelId);
   const id = String(resolved || "").toLowerCase();
+  // Claude 5.5 wire ids encode the effort tier in the suffix (-low/-medium/
+  // -high); a thinkingConfig would state the effort twice and is rejected.
+  // Strip it (and any budget) instead of normalizing like Gemini models.
+  if (id.startsWith("claude-")) {
+    const next = { ...generationConfig } as T;
+    delete next.thinkingConfig;
+    delete next.thinkingBudget;
+    return next;
+  }
   const isGemini3 = isGemini3Model(resolved) || isGeminiProHigh(resolved);
   if (!isGemini3 && !id.includes("gemini-3") && id !== "gemini-pro-agent") return generationConfig;
 

@@ -97,6 +97,36 @@ describe("transport", () => {
     assert.equal(env.request.systemInstruction, undefined);
   });
 
+
+  it("routes Claude 5.5 logical ids to effort-tier wire ids in the envelope", () => {
+    const env = buildEnvelope(
+      { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
+      { projectId: "proj-1", modelId: "claude-opus-5-5-thinking" },
+    );
+    assert.equal(env.model, "claude-opus-5-5-high");
+    // Effort tier is encoded in the wire id, so no thinkingConfig may leak
+    // and the Claude 64000 output cap is pinned for the suffixed tier id.
+    assert.equal(env.request.generationConfig.thinkingConfig, undefined);
+    assert.equal(env.request.generationConfig.maxOutputTokens, 64000);
+    assert.equal(env.request.labels.used_claude, "1");
+
+    const envPlain = buildEnvelope(
+      { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
+      { projectId: "proj-1", modelId: "claude-sonnet-5-5" },
+    );
+    assert.equal(envPlain.model, "claude-sonnet-5-5-medium");
+    assert.equal(envPlain.request.generationConfig.maxOutputTokens, 64000);
+  });
+
+  it("strips thinkingConfig/thinkingBudget from Claude generationConfig", () => {
+    const stripped = sanitizeGenerationConfig(
+      { thinkingConfig: { thinkingLevel: "HIGH", thinkingBudget: 8192 }, thinkingBudget: 4096, temperature: 0.5 },
+      "claude-sonnet-5-5-high",
+    );
+    assert.equal(stripped.thinkingConfig, undefined);
+    assert.equal(stripped.thinkingBudget, undefined);
+    assert.equal(stripped.temperature, 0.5);
+  });
   it("adapts Claude tools to sanitized legacy parameters", () => {
     const tools = [
       {
@@ -218,8 +248,12 @@ describe("transport", () => {
     assert.match(hDesk["User-Agent"], /^Antigravity\//);
     delete process.env.OPENCODE_AGY_UA_MODE;
 
-    const h2 = getAntigravityHeaders("claude-opus-5-5-thinking");
+    const h2 = getAntigravityHeaders("claude-opus-5-5-high");
     assert.equal(h2["anthropic-beta"], "interleaved-thinking-2025-05-14");
+    const h3 = getAntigravityHeaders("claude-sonnet-5-5-medium");
+    assert.equal(h3["anthropic-beta"], "interleaved-thinking-2025-05-14");
+    const h4 = getAntigravityHeaders("claude-opus-5-5-low");
+    assert.equal(h4["anthropic-beta"], "interleaved-thinking-2025-05-14");
   });
 
   it("extractRetryDelay parses body and headers", () => {
@@ -249,6 +283,14 @@ describe("transport", () => {
     assert.equal(resolveWireModelId("gemini-3.7-flash"), "gemini-3.7-flash-high");
     assert.equal(resolveWireModelId("gemini-3.6-flash"), "gemini-3.6-flash-high");
     assert.equal(resolveWireModelId("gemini-3.1-pro-high"), "gemini-pro-agent");
+    // Claude 5.5 logical ids route to the upstream effort-tier wire ids.
+    assert.equal(resolveWireModelId("claude-opus-5-5"), "claude-opus-5-5-medium");
+    assert.equal(resolveWireModelId("claude-opus-5-5-thinking"), "claude-opus-5-5-high");
+    assert.equal(resolveWireModelId("claude-sonnet-5-5"), "claude-sonnet-5-5-medium");
+    assert.equal(resolveWireModelId("claude-sonnet-5-5-thinking"), "claude-sonnet-5-5-high");
+    // Retired Claude 4.x ids keep routing instead of 404ing upstream.
+    assert.equal(resolveWireModelId("claude-opus-4-6-thinking"), "claude-opus-5-5-medium");
+    assert.equal(resolveWireModelId("claude-sonnet-4-6"), "claude-sonnet-5-5-medium");
   });
 
   it("sanitizeGenerationConfig maps pro-high to thinkingLevel HIGH", () => {
