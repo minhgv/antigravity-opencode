@@ -268,11 +268,15 @@ describe("transport", () => {
       "gemini-3.8-flash-high",
       "gemini-3.8-flash-medium",
       "gemini-3.8-flash-low",
-      "gemini-3-flash",
-      "gemini-3.1-pro-high",
       "gemini-3.7-flash-high",
+      "gemini-3.6-flash-high",
+      "gemini-3.6-flash-medium",
+      "gemini-3.6-flash-low",
+      "gemini-3.1-pro-low",
       "gemini-pro-agent",
-      "gemini-3.5-flash-low",
+      "claude-opus-5-5-medium",
+      "claude-sonnet-5-5-high",
+      "gpt-oss-120b-medium",
     ]) {
       assert.ok(ids.includes(need), `missing ${need}`);
     }
@@ -283,14 +287,16 @@ describe("transport", () => {
     assert.equal(resolveWireModelId("gemini-3.7-flash"), "gemini-3.7-flash-high");
     assert.equal(resolveWireModelId("gemini-3.6-flash"), "gemini-3.6-flash-high");
     assert.equal(resolveWireModelId("gemini-3.1-pro-high"), "gemini-pro-agent");
-    // Claude 5.5 logical ids route to the upstream effort-tier wire ids.
     assert.equal(resolveWireModelId("claude-opus-5-5"), "claude-opus-5-5-medium");
     assert.equal(resolveWireModelId("claude-opus-5-5-thinking"), "claude-opus-5-5-high");
     assert.equal(resolveWireModelId("claude-sonnet-5-5"), "claude-sonnet-5-5-medium");
     assert.equal(resolveWireModelId("claude-sonnet-5-5-thinking"), "claude-sonnet-5-5-high");
-    // Retired Claude 4.x ids keep routing instead of 404ing upstream.
+    // Retired Claude 4.x and Gemini 3.5 ids keep routing instead of 404ing upstream.
     assert.equal(resolveWireModelId("claude-opus-4-6-thinking"), "claude-opus-5-5-medium");
     assert.equal(resolveWireModelId("claude-sonnet-4-6"), "claude-sonnet-5-5-medium");
+    assert.equal(resolveWireModelId("gemini-3.5-flash"), "gemini-3.6-flash-high");
+    assert.equal(resolveWireModelId("gemini-3.5-flash-low"), "gemini-3.6-flash-medium");
+    assert.equal(resolveWireModelId("gpt-oss-120b"), "gpt-oss-120b-medium");
   });
 
   it("sanitizeGenerationConfig maps pro-high to thinkingLevel HIGH", () => {

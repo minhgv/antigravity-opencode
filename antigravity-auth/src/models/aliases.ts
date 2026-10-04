@@ -19,8 +19,9 @@ export const MODEL_ID_ALIASES: Record<string, string> = {
   "claude-sonnet-5-5": "claude-sonnet-5-5-medium",
   "claude-sonnet-5-5-thinking": "claude-sonnet-5-5-high",
 
-  // Retired Claude 4.x ids are removed upstream; route saved selections to
-  // the matching 5.5 medium tier so they keep working instead of 404ing.
+  // Retired Claude 4.x and Gemini 3.5 ids are gone from the Antigravity
+  // picker; route saved selections to the current tiered ids instead of
+  // 404ing upstream.
   "claude-opus-4-6": "claude-opus-5-5-medium",
   "claude-opus-4-6-thinking": "claude-opus-5-5-medium",
   "claude-opus-4-5": "claude-opus-5-5-medium",
@@ -29,6 +30,18 @@ export const MODEL_ID_ALIASES: Record<string, string> = {
   "claude-sonnet-4-6-thinking": "claude-sonnet-5-5-medium",
   "claude-sonnet-4-5": "claude-sonnet-5-5-medium",
   "claude-sonnet-4-5-thinking": "claude-sonnet-5-5-medium",
+
+  // Gemini 3.5 flash ids dropped from the picker; map to the 3.6 tiers.
+  "gemini-3.5-flash": "gemini-3.6-flash-high",
+  "gemini-3.5-flash-high": "gemini-3.6-flash-high",
+  "gemini-3.5-flash-medium": "gemini-3.6-flash-medium",
+  "gemini-3.5-flash-low": "gemini-3.6-flash-medium",
+  "gemini-3.5-flash-extra-low": "gemini-3.6-flash-low",
+  "gemini-3.5-flash-lite": "gemini-3.6-flash-low",
+  "gemini-3-flash-agent": "gemini-3.6-flash-high",
+
+  // GPT-OSS is only exposed as the medium wire id.
+  "gpt-oss-120b": "gpt-oss-120b-medium",
 };
 
 export function resolveWireModelId(modelId: string): string {

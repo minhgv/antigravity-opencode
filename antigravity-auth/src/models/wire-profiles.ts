@@ -19,15 +19,21 @@ export interface AntigravityModelWireProfile {
 export const ANTIGRAVITY_MODEL_WIRE_PROFILES: Readonly<
   Record<string, AntigravityModelWireProfile>
 > = {
-  "gemini-3.5-flash-extra-low": { modelEnum: "MODEL_PLACEHOLDER_M187", maxOutputTokens: 65536 },
-  "gemini-3.5-flash-low": { modelEnum: "MODEL_PLACEHOLDER_M20", maxOutputTokens: 65536 },
-  "gemini-3-flash-agent": { modelEnum: "MODEL_PLACEHOLDER_M132", maxOutputTokens: 65536 },
+  "gemini-3.8-flash-high": { modelEnum: "MODEL_PLACEHOLDER_M318", maxOutputTokens: 65536 },
+  "gemini-3.8-flash-medium": { modelEnum: "MODEL_PLACEHOLDER_M319", maxOutputTokens: 65536 },
+  "gemini-3.8-flash-low": { modelEnum: "MODEL_PLACEHOLDER_M320", maxOutputTokens: 65536 },
+  "gemini-3.7-flash-high": { modelEnum: "MODEL_PLACEHOLDER_M298", maxOutputTokens: 65536 },
+  "gemini-3.7-flash-medium": { modelEnum: "MODEL_PLACEHOLDER_M299", maxOutputTokens: 65536 },
+  "gemini-3.7-flash-low": { modelEnum: "MODEL_PLACEHOLDER_M300", maxOutputTokens: 65536 },
+  "gemini-3.6-flash-high": { modelEnum: "MODEL_PLACEHOLDER_M71", maxOutputTokens: 65536 },
+  "gemini-3.6-flash-medium": { modelEnum: "MODEL_PLACEHOLDER_M72", maxOutputTokens: 65536 },
+  "gemini-3.6-flash-low": { modelEnum: "MODEL_PLACEHOLDER_M73", maxOutputTokens: 65536 },
   "gemini-3.1-pro-low": { modelEnum: "MODEL_PLACEHOLDER_M36", maxOutputTokens: 65535 },
   "gemini-pro-agent": { modelEnum: "MODEL_PLACEHOLDER_M16", maxOutputTokens: 65535 },
   // Claude on `daily-cloudcode-pa` rejects `maxOutputTokens > 64000` with a
   // 400 (`Request contains an invalid argument`). The model_enum label is
-  // untracked for these ids; the backend does not require it. Claude 5.5 ships
-  // one wire id per effort tier, so all six suffixed ids get the pin.
+  // untracked for these ids; the backend does not require it. Claude 5.5
+  // ships one wire id per effort tier, so all six suffixed ids get the pin.
   "claude-sonnet-5-5-low": { maxOutputTokens: 64000 },
   "claude-sonnet-5-5-medium": { maxOutputTokens: 64000 },
   "claude-sonnet-5-5-high": { maxOutputTokens: 64000 },
