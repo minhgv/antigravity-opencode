@@ -75,9 +75,76 @@ export function getStoredAuthCredentials(): {
   );
 }
 
+/**
+ * OpenCode 2 stores OAuth credentials as JSON rows inside
+ * `~/.local/share/opencode/opencode.db` (table `credential`). Used as a
+ * fallback for CLI tools (quota.js / image.js) when auth.json has no entry.
+ */
+async function resolveDbStoredAccessToken(): Promise<{ access: string; projectId: string } | null> {
+  const dbFile = join(homedir(), ".local", "share", "opencode", "opencode.db");
+  if (!existsSync(dbFile)) return null;
+  type Row = { value: string; active: number | null };
+  let rows: Row[];
+  try {
+    // runtime-conditional: bun:sqlite exists only under Bun
+    const bunSqlite = await import("bun:sqlite" as string).catch(() => null);
+    if (bunSqlite) {
+      const db = new bunSqlite.Database(dbFile, { readonly: true });
+      try {
+        rows = db
+          .query(
+            `select value, active from credential where integration_id in ('google-antigravity','antigravity') order by active desc, time_created asc`,
+          )
+          .all() as Row[];
+      } finally {
+        db.close();
+      }
+    } else {
+      const nodeSqlite = await import("node:sqlite" as string).catch(() => null);
+      if (!nodeSqlite) return null;
+      const db = new nodeSqlite.DatabaseSync(dbFile, { readonly: true });
+      try {
+        rows = db
+          .prepare(
+            `select value, active from credential where integration_id in ('google-antigravity','antigravity') order by active desc, time_created asc`,
+          )
+          .all() as Row[];
+      } finally {
+        db.close();
+      }
+    }
+  } catch {
+    return null;
+  }
+  for (const row of rows) {
+    try {
+      const value = JSON.parse(row.value);
+      if (value?.type === "oauth" && value.access) {
+        let access = value.access as string;
+        if (value.expires && value.expires < Date.now() + 60_000 && value.refresh) {
+          try {
+            const refreshed = await refreshAccessToken(value.refresh);
+            access = refreshed.access_token;
+          } catch {
+            // keep stale access; backend may still accept it briefly
+          }
+        }
+        const projectId =
+          (typeof value.metadata?.projectId === "string" && value.metadata.projectId) ||
+          readMeta().projectId ||
+          DEFAULT_PROJECT_ID;
+        return { access, projectId };
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
 export async function resolveStoredAccessToken(): Promise<{ access: string; projectId: string } | null> {
   const creds = getStoredAuthCredentials();
-  if (!creds) return null;
+  if (!creds) return resolveDbStoredAccessToken();
 
   let access = creds.access;
   if (creds.expires && creds.expires < Date.now() + 60_000 && creds.refresh) {

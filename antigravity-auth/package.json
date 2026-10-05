@@ -1,6 +1,6 @@
 {
   "name": "antigravity-auth",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "private": true,
   "type": "module",
   "description": "OpenCode AuthHook + custom fetch for Google Antigravity (Cloud Code Assist) Gemini models",
@@ -11,7 +11,7 @@
   },
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && bash scripts/bundle-aisdk.sh",
     "prepack": "npm run build",
     "quota": "node quota.js",
     "image": "node image.js",
@@ -20,6 +20,7 @@
     "install-plugin": "bash ../install.sh"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.87",
     "undici": "^7.19.0"
   },
   "devDependencies": {

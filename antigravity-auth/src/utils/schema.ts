@@ -3,16 +3,20 @@
  * Ports recursive $ref/$defs expansion from native architecture to prevent HTTP 400.
  */
 
-const JSON_SCHEMA_META_DECLARATIONS = new Set([
-  "$schema",
-  "$id",
-  "$anchor",
-  "$dynamicAnchor",
-  "$vocabulary",
-  "$comment",
-  "$defs",
-  "definitions",
-]);
+const JSON_SCHEMA_META_DECLARATIONS: Record<string, true> = {
+  $schema: true,
+  $id: true,
+  $anchor: true,
+  $dynamicAnchor: true,
+  $vocabulary: true,
+  $comment: true,
+  $defs: true,
+  definitions: true,
+  // JSON Schema 2020-12 numeric-bound keywords unsupported by the Cloud Code
+  // Assist OpenAPI subset (backend answers 400 "Unknown name").
+  exclusiveMinimum: true,
+  exclusiveMaximum: true,
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -98,7 +102,7 @@ export function sanitizeForOpenApi(schema: unknown): unknown {
   }
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(schema)) {
-    if (JSON_SCHEMA_META_DECLARATIONS.has(key)) continue;
+    if (JSON_SCHEMA_META_DECLARATIONS[key]) continue;
     result[key] = sanitizeForOpenApi(value);
   }
   return result;

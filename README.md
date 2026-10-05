@@ -1,17 +1,26 @@
-# Google Antigravity Auth Plugin for OpenCode (v1.2.1)
+# Google Antigravity Auth Plugin for OpenCode (v1.3.0)
 
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
-[![OpenCode](https://img.shields.io/badge/OpenCode-v1.14%2B-blue.svg)](https://opencode.ai)
-[![Tests](https://img.shields.io/badge/Tests-46%2F46%20pass-brightgreen.svg)]()
+[![OpenCode](https://img.shields.io/badge/OpenCode-v2.x%20%7C%20v1.14%2B-blue.svg)](https://opencode.ai)
+[![Tests](https://img.shields.io/badge/Tests-51%2F51%20pass-brightgreen.svg)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-ESM-blue.svg)](https://www.typescriptlang.org/)
 
-Plugin tích hợp xác thực **Google Antigravity OAuth** và **Cloud Code Assist API** trực tiếp vào **OpenCode** (v1.14+).
+Plugin tích hợp xác thực **Google Antigravity OAuth** và **Cloud Code Assist API** trực tiếp vào **OpenCode** — hỗ trợ **v2.x** (quyền chính, qua `plugins` dir API `{id, setup}`) và **v1.14+** (legacy `plugin` file entry).
 
 Cung cấp toàn quyền truy cập hệ sinh thái **Gemini (Flash, Pro, Thinking)**, **Claude 5.5** và **GPT OSS** qua tài khoản Google Antigravity: **không cần API Key**, **giữ nguyên native tool calls** (`@ai-sdk/google`), và đạt **wire-format parity 1:1** với client Antigravity chính thức.
 
 ---
 
-## 🌟 Điểm nổi bật phiên bản v1.2.1
+## 🌟 Điểm nổi bật phiên bản v1.3.0
+
+- 🆕 **OpenCode 2.x Native Plugin API**:
+  - Entry `index.js` default-export `{id, setup}`; tự đăng ký 2 providers + model catalog, OAuth methods, AI SDK transport hook — không cần block `provider` trong `opencode.json`.
+  - Credentials dùng `credential` store của v2 (`opencode.db`), fallback đọc `auth.json`/sidecar v1 để tool & CLI vẫn chạy.
+  - Vendored `@ai-sdk/google` (`dist/vendor/google-ai-sdk.js`) vì plugin host v2 không resolve nested bare imports.
+  - Tương thích ngược v1.14+ qua `server` export (`plugin: [...]` entry).
+- 🔁 Các tính năng cốt lõi giữ nguyên từ v1.2.1 bên dưới (wire-parity, dual provider, quota, image, deterministic projectId, hiệu năng).
+
+### Từ v1.2.1
 
 - 🎯 **Wire-Format Parity & Anti-Fingerprinting**:
   - Tự động tạo trajectory per-session identity (`requestId: agent/<agentId>/<ts>/<trajectoryId>/<step>`, signed int63 `sessionId`, telemetry labels).
@@ -35,13 +44,13 @@ Cung cấp toàn quyền truy cập hệ sinh thái **Gemini (Flash, Pro, Thinki
   - Bộ giải quyết đệ quy `$defs/$ref` và chuẩn hóa schema về OpenAPI, loại bỏ triệt để lỗi HTTP 400 (`INVALID_ARGUMENT`).
   - Giữ lại `thoughtSignature` cho Gemini 3 trong các chuỗi tool call lặp vòng.
   - Cơ chế 60s first-event watchdog failover và ghi nhớ endpoint thành công gần nhất (`lastGoodEndpoint`).
-- 🧪 **46/46 Unit Tests pass 100%** trên 8 test suites (Node.js Test Runner).
+- 🧪 **51/51 Unit Tests pass 100%** trên 8 test suites (Node.js Test Runner).
 
 ---
 
 ## ⚡ Cài đặt Nhanh (1 bước)
 
-Yêu cầu: **Node.js 18+** và **OpenCode v1.14.0+**.
+Yêu cầu: **Node.js 18+**, **OpenCode v2.x** (khuyên dùng) hoặc **v1.14.0+**.
 
 Chạy lệnh cài đặt tự động (idempotent, an toàn, tự merge cấu hình vào `opencode.json` mà không ghi đè cài đặt khác):
 
@@ -49,7 +58,11 @@ Chạy lệnh cài đặt tự động (idempotent, an toàn, tự merge cấu h
 bash install.sh
 ```
 
+Trên OpenCode **v2**, installer ghi `plugins: ["./plugins/antigravity-auth"]` (directory plugin `{id, setup}`) thay cho entry `plugin` của v1, đồng thời dọn các block `provider`/`plugin` cũ của plugin để tránh trùng model. SDK `@ai-sdk/google` được vendor thành một bundle tự chứa (`dist/vendor/google-ai-sdk.js`) vì plugin host của v2 không resolve nested bare imports từ `node_modules`.
+
 *(Tùy chọn: Đặt `OPENCODE_AGY_SKIP_CONFIG=1 bash install.sh` nếu chỉ muốn build và sao chép mã nguồn mà không sửa `opencode.json`).*
+
+> ⚠️ **Sau khi cài/nâng cấp trên v2:** nếu `opencode serve` daemon đang chạy ngầm thì plugin cũ vẫn nằm trong bộ nhớ — restart lại process (kill rồi mở `opencode` lại) trước khi dùng, nếu không request sẽ báo `API key not valid`.
 
 ---
 
@@ -63,7 +76,7 @@ bash install.sh
    - **`Google Antigravity (browser)`** (provider: `google-antigravity`)
    - **`Google Antigravity (alias)`** (provider: `antigravity`)
 3. Trình duyệt tự động mở để xác thực Google. Chọn tài khoản và nhấn **Allow**.
-4. Hoàn tất! Thông tin xác thực được lưu an toàn tại `~/.local/share/opencode/auth.json` và sidecar metadata `~/.config/opencode/google-antigravity-meta.json` (phân quyền `0600`).
+4. Hoàn tất! Thông tin xác thực được lưu trong `credential` store của OpenCode v2 (`~/.local/share/opencode/opencode.db`); plugin cũng đọc fallback `~/.local/share/opencode/auth.json` + sidecar `~/.config/opencode/google-antigravity-meta.json` (phân quyền `0600`) cho các bản migrate từ v1.
 
 > 💡 **Mẹo Multi-Account:** Đăng nhập một tài khoản vào `google-antigravity` và một tài khoản khác vào `antigravity`. Plugin sẽ tự động chuyển đổi giữa 2 tài khoản khi một bên chạm giới hạn quota.
 
@@ -148,8 +161,11 @@ antigravity-opencode/
 ├── install.sh            # Script cài đặt 1 bước tự động build và merge config
 ├── README.md             # Tài liệu dự án
 └── antigravity-auth/     # Mã nguồn TypeScript Native của plugin
+    ├── index.js          # Plugin entry (v2: {id, setup}; v1: server export)
+    ├── scripts/
+    │   └── bundle-aisdk.sh # Vendor @ai-sdk/google -> dist/vendor (v2 SDK loader)
     ├── src/
-    │   ├── auth/         # OAuth PKCE, Token store, Deterministic Project Discovery
+    │   ├── auth/         # OAuth PKCE, Token store, v2 credential resolve, Deterministic Project Discovery
     │   ├── models/       # Catalog, thinking level mapping, wire profiles & aliases
     │   ├── transport/    # Custom fetch, envelope, SSE unwrap, session trajectory
     │   ├── quota/        # Logic truy vấn và format quota thời gian thực
@@ -157,12 +173,13 @@ antigravity-opencode/
     │   ├── utils/        # Undici connection pool, TLS prewarm, schema dereferencing, system sanitizer
     │   ├── bin/          # CLI scripts (quota, image)
     │   ├── types/        # Định nghĩa TypeScript types
-    │   ├── plugin.ts     # OpenCode Plugin entry point (dual provider + tools)
+    │   ├── plugin-v2.ts  # OpenCode 2.x setup(): providers, models, sdk hook, tools
+    │   ├── plugin.ts     # OpenCode 1.x Plugin entry point (dual provider + tools)
     │   └── index.ts      # Module exports
     ├── quota.js          # CLI quota runner
     ├── image.js          # CLI image runner
-    ├── package.json      # Dependencies (undici) & scripts
-    └── test/             # Bộ kiểm thử 46 unit tests (Node.js test runner)
+    ├── package.json      # Dependencies & scripts
+    └── test/             # Bộ kiểm thử 51 unit tests (Node.js test runner)
 ```
 
 ---
@@ -176,7 +193,7 @@ cd antigravity-auth
 npm test
 ```
 
-Tất cả **46/46 unit tests trên 8 test suites** đảm bảo tính toàn vẹn:
+Tất cả **51/51 unit tests trên 8 test suites** đảm bảo tính toàn vẹn:
 - P1: Quota & Usage formatting
 - P2: Image Generation module & Path traversal defense
 - P3: Deterministic ProjectId & Environment overrides
