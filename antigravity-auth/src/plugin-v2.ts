@@ -296,9 +296,9 @@ export async function setup(ctx: PluginContextV2) {
       editor.add({
         info: {
           id: providerID,
-          integrationID: providerID,
+          integrationID: PRIMARY_PROVIDER_ID,
           name: PROVIDER_NAMES[providerID],
-          activation: "enabled", // alias integration may hold no credential row; availability would drop it under "auto"
+          activation: "enabled",
           package: "aisdk:@ai-sdk/google",
           headers: {},
           body: {},
