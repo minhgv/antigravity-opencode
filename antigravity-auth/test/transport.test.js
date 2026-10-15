@@ -262,40 +262,51 @@ describe("transport", () => {
     assert.ok(extractRetryDelay("", { headers }) >= 3000);
   });
 
-  it("catalog has active and provisional Gemini models", () => {
+  it("catalog has active Gemini models", () => {
     const ids = Object.keys(ANTIGRAVITY_MODEL_CATALOG);
     for (const need of [
+      "gemini-4-argon-high",
+      "gemini-4-argon-medium",
+      "gemini-4-argon-low",
       "gemini-3.8-flash-high",
       "gemini-3.8-flash-medium",
       "gemini-3.8-flash-low",
-      "gemini-3.7-flash-high",
-      "gemini-3.6-flash-high",
-      "gemini-3.6-flash-medium",
-      "gemini-3.6-flash-low",
-      "gemini-3.1-pro-low",
-      "gemini-pro-agent",
+      "gemini-3.5-flash-lite",
+      "gemini-3-flash",
       "claude-opus-5-5-medium",
       "claude-sonnet-5-5-high",
       "gpt-oss-120b-medium",
     ]) {
       assert.ok(ids.includes(need), `missing ${need}`);
     }
+    for (const retired of [
+      "gemini-3.7-flash-high",
+      "gemini-3.6-flash-high",
+      "gemini-3.1-pro-low",
+      "gemini-pro-agent",
+    ]) {
+      assert.ok(!ids.includes(retired), `unexpected ${retired}`);
+    }
   });
 
-  it("resolves bare model aliases to supported wire models", () => {
-    assert.equal(resolveWireModelId("gemini-3.8-flash"), "gemini-3.8-flash-high");
-    assert.equal(resolveWireModelId("gemini-3.7-flash"), "gemini-3.7-flash-high");
-    assert.equal(resolveWireModelId("gemini-3.6-flash"), "gemini-3.6-flash-high");
-    assert.equal(resolveWireModelId("gemini-3.1-pro-high"), "gemini-pro-agent");
+  it("resolves model aliases and retired IDs to supported wire models", () => {
+    assert.equal(resolveWireModelId("gemini-3.8-flash"), "gemini-3.8-flash-medium");
+    assert.equal(resolveWireModelId("gemini-4-argon"), "gemini-4-argon-medium");
+    assert.equal(resolveWireModelId("gemini-3.7-flash"), "gemini-3.8-flash-medium");
+    assert.equal(resolveWireModelId("gemini-3.7-flash-low"), "gemini-3.8-flash-low");
+    assert.equal(resolveWireModelId("gemini-3.6-flash-high"), "gemini-3.8-flash-high");
+    assert.equal(resolveWireModelId("gemini-3.5-flash"), "gemini-3.8-flash-medium");
+    assert.equal(resolveWireModelId("gemini-3.5-flash-low"), "gemini-3.8-flash-low");
+    assert.equal(resolveWireModelId("gemini-3.5-flash-lite"), "gemini-3.5-flash-lite");
+    assert.equal(resolveWireModelId("gemini-3-flash"), "gemini-3-flash");
+    assert.equal(resolveWireModelId("gemini-pro-agent"), "gemini-4-argon-high");
+    assert.equal(resolveWireModelId("gemini-3.1-pro-low"), "gemini-4-argon-low");
     assert.equal(resolveWireModelId("claude-opus-5-5"), "claude-opus-5-5-medium");
     assert.equal(resolveWireModelId("claude-opus-5-5-thinking"), "claude-opus-5-5-high");
     assert.equal(resolveWireModelId("claude-sonnet-5-5"), "claude-sonnet-5-5-medium");
     assert.equal(resolveWireModelId("claude-sonnet-5-5-thinking"), "claude-sonnet-5-5-high");
-    // Retired Claude 4.x and Gemini 3.5 ids keep routing instead of 404ing upstream.
     assert.equal(resolveWireModelId("claude-opus-4-6-thinking"), "claude-opus-5-5-medium");
     assert.equal(resolveWireModelId("claude-sonnet-4-6"), "claude-sonnet-5-5-medium");
-    assert.equal(resolveWireModelId("gemini-3.5-flash"), "gemini-3.6-flash-high");
-    assert.equal(resolveWireModelId("gemini-3.5-flash-low"), "gemini-3.6-flash-medium");
     assert.equal(resolveWireModelId("gpt-oss-120b"), "gpt-oss-120b-medium");
   });
 
@@ -327,8 +338,8 @@ describe("transport", () => {
       { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
       { projectId: "p", modelId: "gemini-3.8-flash" },
     );
-    assert.equal(envBase.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
-    assert.equal(envBase.model, "gemini-3.8-flash-high");
+    assert.equal(envBase.request.generationConfig.thinkingConfig.thinkingLevel, "MEDIUM");
+    assert.equal(envBase.model, "gemini-3.8-flash-medium");
   });
 
   it("sanitizeGenerationConfig maps thinking level per model variant and floors 3.7+ MINIMAL", () => {
@@ -371,9 +382,9 @@ describe("transport", () => {
     assert.equal(t38Low.thinkingConfig.thinkingLevel, "LOW");
     assert.equal(t38Low.thinkingConfig.thinkingBudget, undefined);
 
-    // gemini-3.8-flash (base alias) maps to HIGH (gemini-3.8-flash-high)
+    // gemini-3.8-flash (base alias) maps to MEDIUM.
     const t38Base = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.8-flash");
-    assert.equal(t38Base.thinkingConfig.thinkingLevel, "HIGH");
+    assert.equal(t38Base.thinkingConfig.thinkingLevel, "MEDIUM");
     assert.equal(t38Base.thinkingConfig.thinkingBudget, undefined);
 
     // explicit MINIMAL on 3.8 bumped to LOW (backend rejects MINIMAL)
@@ -384,9 +395,12 @@ describe("transport", () => {
     const t36High = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3.6-flash-high");
     assert.equal(t36High.thinkingConfig.thinkingLevel, "HIGH");
 
-    // generic 3-flash defaults to MINIMAL (supported on 3.0-3.6)
-    const t3Flash = sanitizeGenerationConfig({ thinkingConfig: { thinkingBudget: 8192 } }, "gemini-3-flash");
-    assert.equal(t3Flash.thinkingConfig.thinkingLevel, "MINIMAL");
+    // Live non-thinking 3-flash leaves generation config unchanged.
+    const t3Flash = sanitizeGenerationConfig({ thinkingBudget: 8192 }, "gemini-3-flash");
+    assert.equal(t3Flash.thinkingConfig, undefined);
+    assert.equal(t3Flash.thinkingBudget, undefined);
+    const lite = sanitizeGenerationConfig({ thinkingBudget: 8192 }, "gemini-3.5-flash-lite");
+    assert.equal(lite.thinkingConfig, undefined);
   });
 
   it("unwraps SSE response envelope incrementally", async () => {

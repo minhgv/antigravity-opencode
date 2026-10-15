@@ -115,10 +115,11 @@ Khởi chạy OpenCode:
 opencode
 ```
 Chọn mô hình mong muốn trong giao diện TUI, ví dụ:
-- `google-antigravity/gemini-3.8-flash-high` (Thế hệ mới nhất)
-- `google-antigravity/gemini-pro-agent` (Coding & suy luận chuyên sâu)
-- `google-antigravity/gemini-3.7-flash-high`
-- Hoặc dùng tiền tố ngắn: `antigravity/gemini-3.8-flash`, `antigravity/gemini-pro-agent`...
+- `google-antigravity/gemini-4-argon-high` (suy luận chuyên sâu)
+- `google-antigravity/gemini-3.8-flash-high`
+- `google-antigravity/gemini-3.5-flash-lite` (nhẹ, không thinking)
+- `google-antigravity/gemini-3-flash` (không thinking)
+- Hoặc dùng tiền tố ngắn: `antigravity/gemini-4-argon`, `antigravity/gemini-3.8-flash`...
 
 ---
 
@@ -126,15 +127,15 @@ Chọn mô hình mong muốn trong giao diện TUI, ví dụ:
 | Dòng mô hình | Model ID trong OpenCode | Wire Model ID | Thinking / Reasoning | Context / Output | Modalities |
 |---|---|---|:---:|:---:|:---:|
 | **Gemini 3.8 Flash** | `gemini-3.8-flash-high`<br>`gemini-3.8-flash-medium`<br>`gemini-3.8-flash-low` | `gemini-3.8-flash-high`<br>`gemini-3.8-flash-medium`<br>`gemini-3.8-flash-low` | `HIGH`<br>`MEDIUM`<br>`LOW` | 1M / 64k | text, image |
-| **Gemini 3.7 Flash** | `gemini-3.7-flash-high`<br>`gemini-3.7-flash-medium`<br>`gemini-3.7-flash-low` | `gemini-3.7-flash-high`<br>`gemini-3.7-flash-medium`<br>`gemini-3.7-flash-low` | `HIGH`<br>`MEDIUM`<br>`LOW` *(floor)* | 1M / 64k | text, image |
-| **Gemini 3.6 Flash** | `gemini-3.6-flash-high`<br>`gemini-3.6-flash-medium`<br>`gemini-3.6-flash-low` | `gemini-3.6-flash-high`<br>`gemini-3.6-flash-medium`<br>`gemini-3.6-flash-low` | `HIGH`<br>`MEDIUM`<br>`LOW` | 1M / 64k | text, image |
-| **Gemini 3.1 Pro** | `gemini-pro-agent`<br>`gemini-3.1-pro-low` | `gemini-pro-agent`<br>`gemini-3.1-pro-low` | `HIGH`<br>`LOW` | 1M / 64k | text, image |
+| **Gemini 4 Argon** | `gemini-4-argon-high`<br>`gemini-4-argon-medium`<br>`gemini-4-argon-low` | `gemini-4-argon-high`<br>`gemini-4-argon-medium`<br>`gemini-4-argon-low` | `HIGH`<br>`MEDIUM`<br>`LOW` | 1M / 64k | text, image |
+| **Gemini 3.5 Flash Lite** | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` | Tắt | 1M / 64k | text, image |
+| **Gemini 3 Flash** | `gemini-3-flash` | `gemini-3-flash` | Tắt | 1M / 64k | text, image |
 | **Claude Opus 5.5** | `claude-opus-5-5-high`<br>`claude-opus-5-5-medium`<br>`claude-opus-5-5-low` | `claude-opus-5-5-high`<br>`claude-opus-5-5-medium`<br>`claude-opus-5-5-low` | Bật | 1M / 64k | text, image |
 | **Claude Sonnet 5.5** | `claude-sonnet-5-5-high`<br>`claude-sonnet-5-5-medium`<br>`claude-sonnet-5-5-low` | `claude-sonnet-5-5-high`<br>`claude-sonnet-5-5-medium`<br>`claude-sonnet-5-5-low` | Bật | 1M / 64k | text, image |
 | **GPT OSS** | `gpt-oss-120b-medium` | `gpt-oss-120b-medium` | Bật | 131k / 32k | text |
 | **Gemini Image** *(tool `generate_image`)* | `gemini-3-pro-image`<br>`gemini-3.1-flash-image` | `gemini-3-pro-image`<br>`gemini-3.1-flash-image` | Tắt | 1M / 64k | image out |
 
-> 📌 **Lưu ý:** Danh sách trên khớp với model picker của Antigravity 2.x (`cascadeModelConfigData` từ language server). Các id không hậu tố (`gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.1-pro`) tự động route về tier `HIGH`/agent tương ứng. Các id đã retired — Claude `4.x`, Gemini `3.5-flash*` (kể cả `gemini-3-flash-agent`), bare `gpt-oss-120b` — được redirect về tier tương đương thay vì 404. GPT-OSS sẽ bị gỡ khỏi Antigravity vào 02/11/2026.
+> 📌 **Lưu ý:** Danh sách trên khớp với model picker Antigravity ngày 14/10/2026. Bare `gemini-4-argon` và `gemini-3.8-flash` route về tier `MEDIUM`; retired Gemini 3.7/3.6/3.5-flash (trừ Flash Lite), Gemini 3.1 Pro và `gemini-pro-agent` được redirect theo tier tới model hiện hành. Claude 4.x vẫn redirect về Claude 5.5 medium; bare `gpt-oss-120b` về medium. GPT-OSS sẽ bị gỡ khỏi Antigravity vào 02/11/2026.
 
 ---
 

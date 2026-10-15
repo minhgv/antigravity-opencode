@@ -1,15 +1,7 @@
 /**
- * Per-wire-id Antigravity Cloud Code Assist request constants, captured from the
- * real `antigravity/hub` client against `daily-cloudcode-pa`. `modelEnum` is the
- * opaque `labels.model_enum` token the client tags each request with — optional
- * because Anthropic-backed wire ids (e.g. `claude-sonnet-5-5-medium`,
- * `claude-opus-5-5-high`) are accepted without one; the label is purely
- * telemetry. `maxOutputTokens` is the fixed `generationConfig.maxOutputTokens`
- * the backend enforces regardless of the thinking budget (Claude caps at
- * 64000, Gemini accepts the discovered cap). Keyed by the routed upstream wire
- * id (post alias resolution), not the collapsed logical id.
- *
- * Ported from oh-my-pi `packages/catalog/src/wire/gemini-headers.ts`.
+ * Per-wire-id Antigravity Cloud Code Assist request constants. `modelEnum` is
+ * optional for ids accepted without the opaque telemetry label. Keyed by routed
+ * upstream wire id (post alias resolution), not the collapsed logical id.
  */
 export interface AntigravityModelWireProfile {
   modelEnum?: string;
@@ -22,18 +14,11 @@ export const ANTIGRAVITY_MODEL_WIRE_PROFILES: Readonly<
   "gemini-3.8-flash-high": { modelEnum: "MODEL_PLACEHOLDER_M318", maxOutputTokens: 65536 },
   "gemini-3.8-flash-medium": { modelEnum: "MODEL_PLACEHOLDER_M319", maxOutputTokens: 65536 },
   "gemini-3.8-flash-low": { modelEnum: "MODEL_PLACEHOLDER_M320", maxOutputTokens: 65536 },
-  "gemini-3.7-flash-high": { modelEnum: "MODEL_PLACEHOLDER_M298", maxOutputTokens: 65536 },
-  "gemini-3.7-flash-medium": { modelEnum: "MODEL_PLACEHOLDER_M299", maxOutputTokens: 65536 },
-  "gemini-3.7-flash-low": { modelEnum: "MODEL_PLACEHOLDER_M300", maxOutputTokens: 65536 },
-  "gemini-3.6-flash-high": { modelEnum: "MODEL_PLACEHOLDER_M71", maxOutputTokens: 65536 },
-  "gemini-3.6-flash-medium": { modelEnum: "MODEL_PLACEHOLDER_M72", maxOutputTokens: 65536 },
-  "gemini-3.6-flash-low": { modelEnum: "MODEL_PLACEHOLDER_M73", maxOutputTokens: 65536 },
-  "gemini-3.1-pro-low": { modelEnum: "MODEL_PLACEHOLDER_M36", maxOutputTokens: 65535 },
-  "gemini-pro-agent": { modelEnum: "MODEL_PLACEHOLDER_M16", maxOutputTokens: 65535 },
-  // Claude on `daily-cloudcode-pa` rejects `maxOutputTokens > 64000` with a
-  // 400 (`Request contains an invalid argument`). The model_enum label is
-  // untracked for these ids; the backend does not require it. Claude 5.5
-  // ships one wire id per effort tier, so all six suffixed ids get the pin.
+  "gemini-4-argon": { maxOutputTokens: 65536 },
+  "gemini-4-argon-low": { maxOutputTokens: 65536 },
+  "gemini-4-argon-medium": { maxOutputTokens: 65536 },
+  "gemini-4-argon-high": { maxOutputTokens: 65536 },
+  // Claude backend rejects maxOutputTokens > 64000.
   "claude-sonnet-5-5-low": { maxOutputTokens: 64000 },
   "claude-sonnet-5-5-medium": { maxOutputTokens: 64000 },
   "claude-sonnet-5-5-high": { maxOutputTokens: 64000 },

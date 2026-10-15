@@ -3,25 +3,16 @@
  */
 
 export const MODEL_ID_ALIASES: Record<string, string> = {
-  "gemini-3.1-pro-high": "gemini-pro-agent",
-  "gemini-pro-agent": "gemini-pro-agent",
-  "gemini-3.8-flash": "gemini-3.8-flash-high",
-  "gemini-3.7-flash": "gemini-3.7-flash-high",
-  "gemini-3.6-flash": "gemini-3.6-flash-high",
-  "gemini-3.1-pro": "gemini-pro-agent",
+  "gemini-3.8-flash": "gemini-3.8-flash-medium",
+  "gemini-4-argon": "gemini-4-argon-medium",
 
-  // Claude 5.5 on Cloud Code Assist follows the Gemini suffix-tier scheme:
-  // one wire id per effort tier (-low | -medium | -high), no `-thinking`
-  // variant and no thinkingConfig. Bare ids default to the neutral medium
-  // tier; `-thinking` selects the high tier.
+  // Claude 5.5 uses suffix tiers; bare ids default to medium and thinking to high.
   "claude-opus-5-5": "claude-opus-5-5-medium",
   "claude-opus-5-5-thinking": "claude-opus-5-5-high",
   "claude-sonnet-5-5": "claude-sonnet-5-5-medium",
   "claude-sonnet-5-5-thinking": "claude-sonnet-5-5-high",
 
-  // Retired Claude 4.x and Gemini 3.5 ids are gone from the Antigravity
-  // picker; route saved selections to the current tiered ids instead of
-  // 404ing upstream.
+  // Retired Claude 4.x selections continue to route to the current medium tier.
   "claude-opus-4-6": "claude-opus-5-5-medium",
   "claude-opus-4-6-thinking": "claude-opus-5-5-medium",
   "claude-opus-4-5": "claude-opus-5-5-medium",
@@ -31,16 +22,25 @@ export const MODEL_ID_ALIASES: Record<string, string> = {
   "claude-sonnet-4-5": "claude-sonnet-5-5-medium",
   "claude-sonnet-4-5-thinking": "claude-sonnet-5-5-medium",
 
-  // Gemini 3.5 flash ids dropped from the picker; map to the 3.6 tiers.
-  "gemini-3.5-flash": "gemini-3.6-flash-high",
-  "gemini-3.5-flash-high": "gemini-3.6-flash-high",
-  "gemini-3.5-flash-medium": "gemini-3.6-flash-medium",
-  "gemini-3.5-flash-low": "gemini-3.6-flash-medium",
-  "gemini-3.5-flash-extra-low": "gemini-3.6-flash-low",
-  "gemini-3.5-flash-lite": "gemini-3.6-flash-low",
-  "gemini-3-flash-agent": "gemini-3.6-flash-high",
+  "gemini-3.7-flash": "gemini-3.8-flash-medium",
+  "gemini-3.7-flash-high": "gemini-3.8-flash-high",
+  "gemini-3.7-flash-medium": "gemini-3.8-flash-medium",
+  "gemini-3.7-flash-low": "gemini-3.8-flash-low",
+  "gemini-3.6-flash": "gemini-3.8-flash-medium",
+  "gemini-3.6-flash-high": "gemini-3.8-flash-high",
+  "gemini-3.6-flash-medium": "gemini-3.8-flash-medium",
+  "gemini-3.6-flash-low": "gemini-3.8-flash-low",
+  "gemini-3.5-flash": "gemini-3.8-flash-medium",
+  "gemini-3.5-flash-high": "gemini-3.8-flash-high",
+  "gemini-3.5-flash-medium": "gemini-3.8-flash-medium",
+  "gemini-3.5-flash-low": "gemini-3.8-flash-low",
+  "gemini-3.5-flash-extra-low": "gemini-3.8-flash-low",
+  "gemini-3-flash-agent": "gemini-3.8-flash-high",
+  "gemini-3.1-pro": "gemini-4-argon-high",
+  "gemini-3.1-pro-high": "gemini-4-argon-high",
+  "gemini-3.1-pro-low": "gemini-4-argon-low",
+  "gemini-pro-agent": "gemini-4-argon-high",
 
-  // GPT-OSS is only exposed as the medium wire id.
   "gpt-oss-120b": "gpt-oss-120b-medium",
 };
 

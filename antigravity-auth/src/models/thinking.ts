@@ -8,7 +8,7 @@ import type { GenerationConfig } from "../types/index.js";
 export function isGemini3Model(modelId: string): boolean {
   const id = String(modelId || "").toLowerCase();
   if (id === "gemini-pro-agent" || id.includes("flash-agent")) return true;
-  return id.includes("gemini-3");
+  return id.includes("gemini-3") || id.includes("gemini-4") || id.includes("argon");
 }
 
 export function isGemini3High(modelId: string): boolean {
@@ -16,18 +16,19 @@ export function isGemini3High(modelId: string): boolean {
   return (
     id === "gemini-pro-agent" ||
     id === "gemini-3-flash-agent" ||
-    (id.includes("gemini-3") && id.includes("high"))
+    (id.includes("gemini-3") && id.includes("high")) ||
+    (id.includes("argon") && id.endsWith("-high"))
   );
 }
 
 export function isGemini3Medium(modelId: string): boolean {
   const id = String(modelId || "").toLowerCase();
-  return id.includes("gemini-3") && id.includes("medium");
+  return (id.includes("gemini-3") || id.includes("argon")) && id.includes("medium");
 }
 
 export function isGemini3Low(modelId: string): boolean {
   const id = String(modelId || "").toLowerCase();
-  return id.includes("gemini-3") && (id.includes("low") || id.includes("extra-low"));
+  return (id.includes("gemini-3") || id.includes("argon")) && (id.includes("low") || id.includes("extra-low"));
 }
 
 export function isGeminiProHigh(modelId: string): boolean {
@@ -59,6 +60,7 @@ export function getDefaultThinkingLevel(modelId: string): "HIGH" | "MEDIUM" | "L
   const resolved = resolveWireModelId(modelId);
   if (isGemini3High(resolved)) return "HIGH";
   if (isGemini3Medium(resolved)) return "MEDIUM";
+  if (resolved === "gemini-4-argon") return "MEDIUM";
   if (isGemini3Low(resolved)) return "LOW";
   return isMinimalThinkingSupported(resolved) ? "MINIMAL" : "LOW";
 }
@@ -90,7 +92,7 @@ export function sanitizeGenerationConfig<T extends GenerationConfig>(
     return next;
   }
   const isGemini3 = isGemini3Model(resolved) || isGeminiProHigh(resolved);
-  if (!isGemini3 && !id.includes("gemini-3") && id !== "gemini-pro-agent") return generationConfig;
+  if (!isGemini3 && !id.includes("gemini-3") && !id.includes("gemini-4") && !id.includes("argon") && id !== "gemini-pro-agent") return generationConfig;
 
   const next = { ...generationConfig } as T;
   delete next.thinkingBudget;
