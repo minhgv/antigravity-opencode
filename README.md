@@ -1,8 +1,8 @@
-# Google Antigravity Auth Plugin for OpenCode (v1.3.0)
+# Google Antigravity Auth Plugin for OpenCode (v1.4.0)
 
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
 [![OpenCode](https://img.shields.io/badge/OpenCode-v2.x%20%7C%20v1.14%2B-blue.svg)](https://opencode.ai)
-[![Tests](https://img.shields.io/badge/Tests-51%2F51%20pass-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-55%2F55%20pass-brightgreen.svg)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-ESM-blue.svg)](https://www.typescriptlang.org/)
 
 Plugin tích hợp xác thực **Google Antigravity OAuth** và **Cloud Code Assist API** trực tiếp vào **OpenCode** — hỗ trợ **v2.x** (quyền chính, qua `plugins` dir API `{id, setup}`) và **v1.14+** (legacy `plugin` file entry).
@@ -11,16 +11,27 @@ Cung cấp toàn quyền truy cập hệ sinh thái **Gemini (Flash, Pro, Thinki
 
 ---
 
-## 🌟 Điểm nổi bật phiên bản v1.3.0
+## 🌟 Điểm nổi bật phiên bản v1.4.0
+
+- 🚀 **Gemini 4 Argon & Upstream Catalog Sync**:
+  - Hỗ trợ đầy đủ các tier `gemini-4-argon-{high,medium,low}` (1M context / 64k output, thinking reasoning đầy đủ).
+  - Bổ sung `gemini-3.5-flash-lite` và `gemini-3-flash` (non-thinking).
+  - Đăng ký nhóm `gemini-argon` family chuẩn hóa cho OpenCode v2 provider selection.
+- 🔄 **Auto Fallback cho Argon (`OPENCODE_AGY_AUTO_FALLBACK=1`)**:
+  - Tự động bắt lỗi terminal `429 RESOURCE_EXHAUSTED` hoặc `404` của Gemini 4 Argon và retry chuyển sang `gemini-3.8-flash` cùng tier (`high` $\rightarrow$ `high`, `medium` $\rightarrow$ `medium`, `low` $\rightarrow$ `low`), đảm bảo luồng làm việc không bị gián đoạn.
+- 🧹 **Dọn dẹp Model cũ & Hint 404 Thông minh**:
+  - Loại bỏ các model đã bị Google gỡ khỏi backend (Gemini 3.7/3.6/3.5-flash tiers, Gemini 3.1 Pro, `gemini-pro-agent`, Claude 4.x).
+  - Request tới các model đã gỡ không còn bị redirect ngầm mà sẽ báo lỗi 404 kèm hướng dẫn trực tiếp các model thay thế khả dụng.
+- 🔁 **Kế thừa đầy đủ OpenCode 2.x Native Plugin API & v1.14+ (từ v1.3.0)**:
+  - Tự động đăng ký kép provider `google-antigravity` và `antigravity`, hook qua `@ai-sdk/google`.
+
+### Từ v1.3.0
 
 - 🆕 **OpenCode 2.x Native Plugin API**:
   - Entry `index.js` default-export `{id, setup}`; tự đăng ký 2 providers + model catalog, OAuth methods, AI SDK transport hook — không cần block `provider` trong `opencode.json`.
   - Credentials dùng `credential` store của v2 (`opencode.db`), fallback đọc `auth.json`/sidecar v1 để tool & CLI vẫn chạy.
   - Vendored `@ai-sdk/google` (`dist/vendor/google-ai-sdk.js`) vì plugin host v2 không resolve nested bare imports.
   - Tương thích ngược v1.14+ qua `server` export (`plugin: [...]` entry).
-- 🔁 Các tính năng cốt lõi giữ nguyên từ v1.2.1 bên dưới (wire-parity, dual provider, quota, image, deterministic projectId, hiệu năng).
-
-### Từ v1.2.1
 
 - 🎯 **Wire-Format Parity & Anti-Fingerprinting**:
   - Tự động tạo trajectory per-session identity (`requestId: agent/<agentId>/<ts>/<trajectoryId>/<step>`, signed int63 `sessionId`, telemetry labels).
@@ -135,7 +146,7 @@ Chọn mô hình mong muốn trong giao diện TUI, ví dụ:
 | **GPT OSS** | `gpt-oss-120b-medium` | `gpt-oss-120b-medium` | Bật | 131k / 32k | text |
 | **Gemini Image** *(tool `generate_image`)* | `gemini-3-pro-image`<br>`gemini-3.1-flash-image` | `gemini-3-pro-image`<br>`gemini-3.1-flash-image` | Tắt | 1M / 64k | image out |
 
-> 📌 **Lưu ý:** Danh sách trên khớp với model picker Antigravity ngày 14/10/2026. Bare `gemini-4-argon` và `gemini-3.8-flash` route về tier `MEDIUM`; retired Gemini 3.7/3.6/3.5-flash (trừ Flash Lite), Gemini 3.1 Pro và `gemini-pro-agent` được redirect theo tier tới model hiện hành. Claude 4.x vẫn redirect về Claude 5.5 medium; bare `gpt-oss-120b` về medium. GPT-OSS sẽ bị gỡ khỏi Antigravity vào 02/11/2026.
+> 📌 **Lưu ý:** Danh sách trên khớp với model picker Antigravity ngày 14/10/2026. Bare `gemini-4-argon` và `gemini-3.8-flash` route về tier `MEDIUM`; bare `claude-*-5-5` về medium, `-thinking` về high; bare `gpt-oss-120b` về medium. Model cũ đã bị upstream gỡ (Gemini 3.7/3.6/3.5-flash tiers, Gemini 3.1 Pro, `gemini-pro-agent`, Claude 4.x) **không còn redirect** — request sẽ báo lỗi 404, hãy chuyển sang id mới. GPT-OSS sẽ bị gỡ khỏi Antigravity vào 02/11/2026.
 
 ---
 
@@ -146,6 +157,7 @@ Chọn mô hình mong muốn trong giao diện TUI, ví dụ:
 | `OPENCODE_AGY_UA_MODE` | `ide` | Định dạng User-Agent gửi tới Google API: `ide` (mặc định - auto track version qua electron-builder manifest), `desktop`, `cli`, `sdk`. |
 | `OPENCODE_AGY_CLOAK_TOOLS` | `0` | Đặt `=1` để ngụy trang tên tools với hậu tố `_ide` và inject decoy tools của Antigravity IDE. |
 | `OPENCODE_AGY_SENSITIVE_WORDS` | `RFC 2119` | Danh sách từ khóa nhạy cảm (cách nhau bởi dấu phẩy) cần chèn zero-width space để tránh bộ lọc máy chủ gây bare-429. |
+| `OPENCODE_AGY_AUTO_FALLBACK` | `0` | Đặt `=1` để tự động fallback `gemini-4-argon-*` → `gemini-3.8-flash-*` cùng tier khi upstream trả 429/404 terminal. |
 | `PI_AI_ANTIGRAVITY_VERSION` | *(auto)* | Ghi đè phiên bản client trong User-Agent (bỏ qua auto-track). |
 | `ANTIGRAVITY_PROJECT_ID` | *(auto)* | Ghi đè chỉ định Project ID thay cho cơ chế tự phát hiện. |
 | `OPENCODE_AGY_NO_KEEPALIVE` | `0` | Đặt `=1` để tắt Undici Connection Pool và dùng fetch mặc định. |

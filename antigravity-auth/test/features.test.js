@@ -68,8 +68,8 @@ describe("P1: Quota & Usage formatting", () => {
       ],
       models: [
         {
-          modelId: "gemini-3.7-flash-high",
-          displayName: "Gemini 3.7 Flash",
+          modelId: "gemini-3.8-flash-high",
+          displayName: "Gemini 3.8 Flash",
           remainingFraction: 0.85,
           recommended: true,
         },
@@ -81,7 +81,7 @@ describe("P1: Quota & Usage formatting", () => {
     assert.match(formatted, /Google Antigravity Quota Status/);
     assert.match(formatted, /Gemini Models/);
     assert.match(formatted, /85% còn lại/);
-    assert.match(formatted, /gemini-3.7-flash-high/);
+    assert.match(formatted, /gemini-3.8-flash-high/);
   });
 });
 

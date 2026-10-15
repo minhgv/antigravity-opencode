@@ -16,6 +16,7 @@ import {
   requiresToolCallId,
   normalizeToolCallId,
   resolveWireModelId,
+  getFallbackWireModelId,
   SKIP_THOUGHT_SIGNATURE,
   ANTIGRAVITY_MODEL_CATALOG,
   dereferenceSchema,
@@ -289,42 +290,167 @@ describe("transport", () => {
     }
   });
 
-  it("resolves model aliases and retired IDs to supported wire models", () => {
+  it("resolves bare model aliases to tiered wire models; retired ids pass through", () => {
     assert.equal(resolveWireModelId("gemini-3.8-flash"), "gemini-3.8-flash-medium");
     assert.equal(resolveWireModelId("gemini-4-argon"), "gemini-4-argon-medium");
-    assert.equal(resolveWireModelId("gemini-3.7-flash"), "gemini-3.8-flash-medium");
-    assert.equal(resolveWireModelId("gemini-3.7-flash-low"), "gemini-3.8-flash-low");
-    assert.equal(resolveWireModelId("gemini-3.6-flash-high"), "gemini-3.8-flash-high");
-    assert.equal(resolveWireModelId("gemini-3.5-flash"), "gemini-3.8-flash-medium");
-    assert.equal(resolveWireModelId("gemini-3.5-flash-low"), "gemini-3.8-flash-low");
     assert.equal(resolveWireModelId("gemini-3.5-flash-lite"), "gemini-3.5-flash-lite");
     assert.equal(resolveWireModelId("gemini-3-flash"), "gemini-3-flash");
-    assert.equal(resolveWireModelId("gemini-pro-agent"), "gemini-4-argon-high");
-    assert.equal(resolveWireModelId("gemini-3.1-pro-low"), "gemini-4-argon-low");
     assert.equal(resolveWireModelId("claude-opus-5-5"), "claude-opus-5-5-medium");
     assert.equal(resolveWireModelId("claude-opus-5-5-thinking"), "claude-opus-5-5-high");
     assert.equal(resolveWireModelId("claude-sonnet-5-5"), "claude-sonnet-5-5-medium");
     assert.equal(resolveWireModelId("claude-sonnet-5-5-thinking"), "claude-sonnet-5-5-high");
-    assert.equal(resolveWireModelId("claude-opus-4-6-thinking"), "claude-opus-5-5-medium");
-    assert.equal(resolveWireModelId("claude-sonnet-4-6"), "claude-sonnet-5-5-medium");
     assert.equal(resolveWireModelId("gpt-oss-120b"), "gpt-oss-120b-medium");
+    // Retired ids are dropped upstream; they must NOT silently reroute.
+    for (const retired of [
+      "gemini-3.7-flash",
+      "gemini-3.6-flash-high",
+      "gemini-3.5-flash-high",
+      "gemini-3.1-pro-low",
+      "gemini-pro-agent",
+      "gemini-3-flash-agent",
+      "claude-opus-4-6-thinking",
+      "claude-sonnet-4-6",
+    ]) {
+      assert.equal(resolveWireModelId(retired), retired, `${retired} must pass through`);
+    }
   });
 
-  it("sanitizeGenerationConfig maps pro-high to thinkingLevel HIGH", () => {
+  it("getFallbackWireModelId maps argon tiers to equivalent 3.8-flash tiers", () => {
+    assert.equal(getFallbackWireModelId("gemini-4-argon"), "gemini-3.8-flash-medium");
+    assert.equal(getFallbackWireModelId("gemini-4-argon-high"), "gemini-3.8-flash-high");
+    assert.equal(getFallbackWireModelId("gemini-4-argon-low"), "gemini-3.8-flash-low");
+    assert.equal(getFallbackWireModelId("gemini-3.8-flash-high"), undefined);
+    assert.equal(getFallbackWireModelId("claude-opus-5-5"), undefined);
+  });
+
+  it("sanitizeGenerationConfig maps argon-high to thinkingLevel HIGH", () => {
     const cfg = sanitizeGenerationConfig(
       { thinkingConfig: { includeThoughts: true, thinkingBudget: 8192 } },
-      "gemini-3.1-pro-high",
+      "gemini-4-argon-high",
     );
     assert.equal(cfg.thinkingConfig.thinkingLevel, "HIGH");
     assert.equal(cfg.thinkingConfig.thinkingBudget, undefined);
   });
 
-  it("buildEnvelope injects HIGH thinking for pro-high when missing", () => {
+  it("buildEnvelope injects HIGH thinking for argon-high when missing", () => {
     const env = buildEnvelope(
       { contents: [{ role: "user", parts: [{ text: "hi" }] }] },
-      { projectId: "p", modelId: "gemini-3.1-pro-high" },
+      { projectId: "p", modelId: "gemini-4-argon-high" },
     );
     assert.equal(env.request.generationConfig.thinkingConfig.thinkingLevel, "HIGH");
+  });
+
+  it("custom fetch falls back from argon to 3.8-flash on terminal 429 when enabled", async () => {
+    const prev = process.env.OPENCODE_AGY_AUTO_FALLBACK;
+    process.env.OPENCODE_AGY_AUTO_FALLBACK = "1";
+    try {
+      const calls = [];
+      const mockFetch = async (url, init) => {
+        const sent = JSON.parse(init?.body ?? "{}");
+        calls.push(sent.model);
+        if (sent.model === "gemini-4-argon-high") {
+          return new Response(JSON.stringify({ error: { code: 429, message: "RESOURCE_EXHAUSTED. Please retry in 0.01s" } }), {
+            status: 429,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response(
+          JSON.stringify({ response: { candidates: [{ content: { parts: [{ text: "ok" }] } }] } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      };
+
+      const fetchImpl = createAntigravityFetch({
+        getAccessToken: async () => "token-x",
+        getProjectId: async () => "proj-x",
+        fetchImpl: mockFetch,
+      });
+
+      const res = await fetchImpl(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-4-argon-high:generateContent",
+        { method: "POST", body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) },
+      );
+
+      assert.equal(res.status, 200);
+      assert.equal(calls.at(-1), "gemini-3.8-flash-high");
+      assert.ok(calls.every((m) => m === "gemini-4-argon-high" || m === "gemini-3.8-flash-high"));
+    } finally {
+      if (prev === undefined) delete process.env.OPENCODE_AGY_AUTO_FALLBACK;
+      else process.env.OPENCODE_AGY_AUTO_FALLBACK = prev;
+    }
+  });
+
+  it("custom fetch does NOT fall back when OPENCODE_AGY_AUTO_FALLBACK is unset", async () => {
+    const prev = process.env.OPENCODE_AGY_AUTO_FALLBACK;
+    delete process.env.OPENCODE_AGY_AUTO_FALLBACK;
+    try {
+      const calls = [];
+      const mockFetch = async (url, init) => {
+        const sent = JSON.parse(init?.body ?? "{}");
+        calls.push(sent.model);
+        return new Response(JSON.stringify({ error: { code: 404, message: "Requested entity was not found." } }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      };
+
+      const fetchImpl = createAntigravityFetch({
+        getAccessToken: async () => "token-x",
+        getProjectId: async () => "proj-x",
+        fetchImpl: mockFetch,
+      });
+
+      const res = await fetchImpl(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-4-argon:generateContent",
+        { method: "POST", body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) },
+      );
+
+      assert.equal(res.status, 404);
+      assert.ok(calls.every((m) => m === "gemini-4-argon-medium"));
+      const body = await res.text();
+      assert.match(body, /not available right now/);
+    } finally {
+      if (prev !== undefined) process.env.OPENCODE_AGY_AUTO_FALLBACK = prev;
+    }
+  });
+
+  it("custom fetch falls back from argon to 3.8-flash on terminal 404 when enabled", async () => {
+    const prev = process.env.OPENCODE_AGY_AUTO_FALLBACK;
+    process.env.OPENCODE_AGY_AUTO_FALLBACK = "1";
+    try {
+      const calls = [];
+      const mockFetch = async (url, init) => {
+        const sent = JSON.parse(init?.body ?? "{}");
+        calls.push(sent.model);
+        if (sent.model === "gemini-4-argon-low") {
+          return new Response(
+            JSON.stringify({ error: { code: 404, message: "Requested entity was not found." } }),
+            { status: 404, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        return new Response(
+          JSON.stringify({ response: { candidates: [{ content: { parts: [{ text: "ok" }] } }] } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      };
+
+      const fetchImpl = createAntigravityFetch({
+        getAccessToken: async () => "token-x",
+        getProjectId: async () => "proj-x",
+        fetchImpl: mockFetch,
+      });
+
+      const res = await fetchImpl(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-4-argon-low:generateContent",
+        { method: "POST", body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: "hi" }] }] }) },
+      );
+
+      assert.equal(res.status, 200);
+      assert.equal(calls.at(-1), "gemini-3.8-flash-low");
+    } finally {
+      if (prev === undefined) delete process.env.OPENCODE_AGY_AUTO_FALLBACK;
+      else process.env.OPENCODE_AGY_AUTO_FALLBACK = prev;
+    }
   });
   it("buildEnvelope injects appropriate thinking for gemini-3.8-flash variants and aliases bare model", () => {
     const envHigh = buildEnvelope(

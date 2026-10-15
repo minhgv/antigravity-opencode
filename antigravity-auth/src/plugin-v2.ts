@@ -108,6 +108,7 @@ interface PluginContextV2 extends V2PluginContextLike {
 /** Model family inference for grouping (v2 `small` model selection). */
 const FAMILIES: [RegExp, string][] = [
   [/^gemini.*flash/, "gemini-flash"],
+  [/^gemini.*argon/, "gemini-argon"],
   [/^gemini.*pro|^gemini-pro/, "gemini-pro"],
   [/^claude.*opus/, "claude-opus"],
   [/^claude.*sonnet/, "claude-sonnet"],

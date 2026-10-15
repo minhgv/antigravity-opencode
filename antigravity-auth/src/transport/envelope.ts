@@ -6,12 +6,7 @@ import {
   CLAUDE_THINKING_BETA_HEADER,
   SKIP_THOUGHT_SIGNATURE,
 } from "../auth/constants.js";
-import {
-  sanitizeGenerationConfig,
-  isGemini3Model,
-  isGeminiProHigh,
-  isGeminiProLow,
-} from "../models/thinking.js";
+import { sanitizeGenerationConfig, isGemini3Model } from "../models/thinking.js";
 import { ANTIGRAVITY_MODEL_CATALOG } from "../models/catalog.js";
 import { ANTIGRAVITY_MODEL_WIRE_PROFILES } from "../models/wire-profiles.js";
 import { resolveWireModelId } from "../models/aliases.js";
@@ -294,7 +289,7 @@ export function postProcessGeminiBody(
       body.generationConfig as Record<string, unknown>,
       modelId,
     );
-  } else if (isGemini3Model(modelId) || isGeminiProHigh(modelId) || isGeminiProLow(modelId)) {
+  } else if (isGemini3Model(modelId)) {
     body.generationConfig = sanitizeGenerationConfig({}, modelId);
   }
 

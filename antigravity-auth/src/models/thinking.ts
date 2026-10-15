@@ -7,15 +7,12 @@ import type { GenerationConfig } from "../types/index.js";
 
 export function isGemini3Model(modelId: string): boolean {
   const id = String(modelId || "").toLowerCase();
-  if (id === "gemini-pro-agent" || id.includes("flash-agent")) return true;
   return id.includes("gemini-3") || id.includes("gemini-4") || id.includes("argon");
 }
 
 export function isGemini3High(modelId: string): boolean {
   const id = String(modelId || "").toLowerCase();
   return (
-    id === "gemini-pro-agent" ||
-    id === "gemini-3-flash-agent" ||
     (id.includes("gemini-3") && id.includes("high")) ||
     (id.includes("argon") && id.endsWith("-high"))
   );
@@ -31,21 +28,11 @@ export function isGemini3Low(modelId: string): boolean {
   return (id.includes("gemini-3") || id.includes("argon")) && (id.includes("low") || id.includes("extra-low"));
 }
 
-export function isGeminiProHigh(modelId: string): boolean {
-  const id = String(modelId || "").toLowerCase();
-  return id === "gemini-pro-agent" || (id.includes("gemini-3") && id.includes("pro") && id.includes("high"));
-}
-
-export function isGeminiProLow(modelId: string): boolean {
-  const id = String(modelId || "").toLowerCase();
-  return id.includes("gemini-3") && id.includes("pro") && id.includes("low");
-}
-
 /**
  * MINIMAL thinking level is rejected by the Antigravity backend for Gemini 3.7+
  * (HTTP 400 "Thinking level MINIMAL is not supported for this model"). The
- * minimum supported floor there is LOW. Older models (gemini-3.6 and below)
- * still accept MINIMAL.
+ * minimum supported floor there is LOW. Older model families still accept
+ * MINIMAL.
  */
 export function isMinimalThinkingSupported(modelId: string): boolean {
   const m = String(modelId || "").toLowerCase().match(/^gemini-(\d+)(?:\.(\d+))?/);
@@ -91,8 +78,8 @@ export function sanitizeGenerationConfig<T extends GenerationConfig>(
     delete next.thinkingBudget;
     return next;
   }
-  const isGemini3 = isGemini3Model(resolved) || isGeminiProHigh(resolved);
-  if (!isGemini3 && !id.includes("gemini-3") && !id.includes("gemini-4") && !id.includes("argon") && id !== "gemini-pro-agent") return generationConfig;
+  const isGemini3 = isGemini3Model(resolved);
+  if (!isGemini3) return generationConfig;
 
   const next = { ...generationConfig } as T;
   delete next.thinkingBudget;

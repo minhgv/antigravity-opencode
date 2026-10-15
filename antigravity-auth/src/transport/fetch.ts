@@ -4,7 +4,7 @@
  * handles token auto-refresh, exponential backoff, and SSE unwrapping.
  */
 import { ENDPOINT_FALLBACKS, DEFAULT_ENDPOINT } from "../auth/constants.js";
-import { resolveWireModelId } from "../models/aliases.js";
+import { resolveWireModelId, getFallbackWireModelId } from "../models/aliases.js";
 import { extractRetryDelay, parseAntigravityRateLimitReason } from "../utils/retry.js";
 import { antigravityFetch, prewarmConnection } from "../utils/http.js";
 import { buildEnvelope, getAntigravityHeaders } from "./envelope.js";
@@ -203,6 +203,15 @@ export function createAntigravityFetch(deps: AntigravityFetchDeps) {
 
     const wireModelId = resolveWireModelId(modelId);
 
+    // Rate-limit escape hatch: Gemini 4 Argon retries as the equivalent
+    // Gemini 3.8 Flash tier when OPENCODE_AGY_AUTO_FALLBACK=1 and upstream
+    // answers terminal 429/404 (parity with antigravity-pi).
+    const wireCandidates = [wireModelId];
+    const fallbackWireId = getFallbackWireModelId(wireModelId);
+    if (process.env.OPENCODE_AGY_AUTO_FALLBACK === "1" && fallbackWireId) {
+      wireCandidates.push(fallbackWireId);
+    }
+
     let accessToken = await deps.getAccessToken();
     let projectId = await deps.getProjectId();
     if (!accessToken || !projectId) {
@@ -211,18 +220,7 @@ export function createAntigravityFetch(deps: AntigravityFetchDeps) {
       );
     }
 
-    // Envelope is built once per request so requestId/labels stay stable across
-    // retries — the real client does not mint a new identity on retry.
-    const envelope = buildEnvelope(geminiBody, {
-      projectId,
-      modelId: wireModelId,
-      isAntigravity: true,
-    });
-    let envelopeJson = JSON.stringify(envelope);
-    const sessionId =
-      typeof envelope.request?.sessionId === "string" ? envelope.request.sessionId : undefined;
-
-    const headers = new Headers();
+    const baseHeaders = new Headers();
     const rawHeaders =
       init.headers || (typeof input === "object" && input !== null ? (input as any).headers : undefined);
     if (rawHeaders) {
@@ -230,19 +228,38 @@ export function createAntigravityFetch(deps: AntigravityFetchDeps) {
       h.forEach((v, k) => {
         const lk = k.toLowerCase();
         if (lk === "x-goog-api-key" || lk === "authorization") return;
-        headers.set(k, v);
+        baseHeaders.set(k, v);
       });
-    }
-    headers.set("Authorization", `Bearer ${accessToken}`);
-    headers.set("Content-Type", "application/json");
-    headers.set("Accept", "text/event-stream");
-    for (const [k, v] of Object.entries(getAntigravityHeaders(wireModelId))) {
-      headers.set(k, v);
     }
 
     let lastError: Error | undefined;
     let rotated = false;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let sessionId: string | undefined;
+
+    wireLoop: for (let candIdx = 0; candIdx < wireCandidates.length; candIdx++) {
+      const activeWireId = wireCandidates[candIdx];
+      // Envelope is built once per request so requestId/labels stay stable across
+      // retries — the real client does not mint a new identity on retry.
+      const envelope = buildEnvelope(geminiBody, {
+        projectId,
+        modelId: activeWireId,
+        isAntigravity: true,
+      });
+      let envelopeJson = JSON.stringify(envelope);
+      sessionId =
+        typeof envelope.request?.sessionId === "string" ? envelope.request.sessionId : undefined;
+
+      const headers = new Headers(baseHeaders);
+      headers.set("Authorization", `Bearer ${accessToken}`);
+      headers.set("Content-Type", "application/json");
+      headers.set("Accept", "text/event-stream");
+      for (const [k, v] of Object.entries(getAntigravityHeaders(activeWireId))) {
+        headers.set(k, v);
+      }
+
+      const hasMoreCandidates = candIdx < wireCandidates.length - 1;
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       if (signal?.aborted) throw new Error("Request was aborted");
 
       // Try the endpoint that last succeeded first; fall back to the static list.
@@ -352,6 +369,30 @@ export function createAntigravityFetch(deps: AntigravityFetchDeps) {
                 );
               } catch {
                 /* ignore */
+              }
+            }
+            if (response.status === 404 || response.status === 429) {
+              const errBody = await response.clone().text().catch(() => "");
+              // Free the pooled socket: the clone read leaves the original
+              // body unconsumed on both the fallback and hint-return paths.
+              void response.body?.cancel().catch(() => {});
+              lastError = new Error(
+                `Antigravity ${response.status} ${activeWireId}: ${errBody.slice(0, 200)}`,
+              );
+              if (hasMoreCandidates) continue wireLoop;
+              if (response.status === 404 && /not found/i.test(errBody)) {
+                // User-facing hint for removed/unavailable models. Plain text:
+                // the body is no longer valid JSON once the hint is appended.
+                const hintHeaders = new Headers(response.headers);
+                hintHeaders.set("content-type", "text/plain; charset=utf-8");
+                return new Response(
+                  `${errBody}\n\nThis model is not available right now. Next: switch to gemini-3.8-flash, gemini-4-argon, claude-sonnet-5-5, gemini-3.5-flash-lite, or another working model.`,
+                  {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: hintHeaders,
+                  },
+                );
               }
             }
             return response;
@@ -464,6 +505,7 @@ export function createAntigravityFetch(deps: AntigravityFetchDeps) {
           }
           throw lastError;
         }
+      }
       }
     }
     throw lastError ?? new Error("Antigravity request failed on all endpoints");
