@@ -7,8 +7,12 @@
  * latest released version. Ported from oh-my-pi `packages/catalog/src/wire/gemini-headers.ts`.
  */
 
-/** Pinned fallback when the update manifest is unreachable. */
-export const DEFAULT_ANTIGRAVITY_VERSION = "2.11.0";
+/** Pinned fallback when the update manifest is unreachable.
+ *  Must be >= 2.23.0: daily-cloudcode-pa gates Gemini 4 Argon on client version. */
+export const DEFAULT_ANTIGRAVITY_VERSION = "2.23.0";
+
+/** Changelist appended to the hub User-Agent (not validated upstream; captured value stays). */
+export const DEFAULT_ANTIGRAVITY_CL = "963137146";
 
 const ANTIGRAVITY_VERSION_MANIFEST_URL =
   "https://antigravity-hub-auto-updater-974169037036.us-central1.run.app/manifest/latest-arm64-mac.yml";

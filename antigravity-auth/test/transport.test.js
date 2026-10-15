@@ -863,10 +863,10 @@ describe("native architecture improvements", () => {
     assert.ok(sanitizedPart, "Expected OpenCode branding to be rewritten to Antigravity");
     assert.ok(!sanitizedPart.text.includes("Claude Agent SDK"), "Expected Claude Agent SDK branding to be stripped");
 
-    // 3. Verify desktop User-Agent without leaking VSCode cloud shell headers
+    // 3. Verify hub User-Agent (required for Gemini 4 Argon gating) without leaking VSCode cloud shell headers
     delete process.env.OPENCODE_AGY_UA_MODE;
     const headers = getAntigravityHeaders("gemini-3-flash");
-    assert.match(headers["User-Agent"], /^antigravity\/ide\/2\.11\.0/);
+    assert.match(headers["User-Agent"], /^antigravity\/hub\/2\.23\.0 \(aidev_client; os_type=darwin; arch=arm64; cl=963137146\)/);
     assert.equal(headers["X-Goog-Api-Client"], undefined, "Expected X-Goog-Api-Client to be stripped");
     assert.equal(headers["x-request-source"], "local");
   });

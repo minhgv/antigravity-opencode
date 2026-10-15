@@ -154,7 +154,7 @@ Chọn mô hình mong muốn trong giao diện TUI, ví dụ:
 
 | Biến môi trường | Mặc định | Chức năng & Mô tả |
 |---|---|---|
-| `OPENCODE_AGY_UA_MODE` | `ide` | Định dạng User-Agent gửi tới Google API: `ide` (mặc định - auto track version qua electron-builder manifest), `desktop`, `cli`, `sdk`. |
+| `OPENCODE_AGY_UA_MODE` | `hub` | Định dạng User-Agent gửi tới Google API: `hub` (mặc định — fingerprint `antigravity/hub/<ver>` **bắt buộc** để dùng Gemini 4 Argon trên daily-cloudcode-pa), `ide` (legacy, catalog cũ không có Argon), `desktop`, `cli`, `sdk`. |
 | `OPENCODE_AGY_CLOAK_TOOLS` | `0` | Đặt `=1` để ngụy trang tên tools với hậu tố `_ide` và inject decoy tools của Antigravity IDE. |
 | `OPENCODE_AGY_SENSITIVE_WORDS` | `RFC 2119` | Danh sách từ khóa nhạy cảm (cách nhau bởi dấu phẩy) cần chèn zero-width space để tránh bộ lọc máy chủ gây bare-429. |
 | `OPENCODE_AGY_AUTO_FALLBACK` | `0` | Đặt `=1` để tự động fallback `gemini-4-argon-*` → `gemini-3.8-flash-*` cùng tier khi upstream trả 429/404 terminal. |

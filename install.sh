@@ -47,30 +47,60 @@ else
     mkdir -p "$OPENCODE_DIR"
     echo "{}" > "$CONFIG_FILE"
   fi
-  echo "==> Merging plugin + provider into $CONFIG_FILE"
-  node - "$CONFIG_FILE" "$PLUGIN_DIR" <<'NODE'
-const fs = require("fs");
-const [configFile, pluginDir] = process.argv.slice(2);
-const cfg = JSON.parse(fs.readFileSync(configFile, "utf8"));
-// v2 loads plugins from the `plugins` key (directory targets);
-// the legacy `plugin` file entry stays for V1 installs (<2.x).
-const dirEntry = `./plugins/antigravity-auth`;
-const fileEntry = `./plugins/antigravity-auth/plugin.js`;
+  echo "==> Merging plugin entries + provider (V1) into $CONFIG_FILE"
+  # Config shape is version-specific: OpenCode V2 requires `plugins` (dir) and
+  # MUST NOT have a `provider` block for our ids (the normalizer maps
+  # `npm: "@ai-sdk/google"` to the built-in `@opencode/ai/providers/google`,
+  # bypassing this plugin's auth transport -> "API key not valid").
+  # OpenCode V1 requires `plugin` (file) + `provider.<id>.models` in the config.
+  TARGET="${OPENCODE_AGY_TARGET:-auto}"
+  if [ "$TARGET" = "auto" ]; then
+    VER_MAJOR="$( (opencode --version 2>/dev/null || opencode2 --version 2>/dev/null || true) | grep -oE '[0-9]+' | head -1 )"
+    if [ "${VER_MAJOR:-2}" = "1" ]; then TARGET="v1"; else TARGET="v2"; fi
+  fi
+  echo "    target: $TARGET (override with OPENCODE_AGY_TARGET=v1|v2)"
+  node --input-type=module - "$CONFIG_FILE" "$PLUGIN_DIR" "$TARGET" <<'NODE'
+import fs from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
+const [configFile, pluginDir, target] = process.argv.slice(2);
+const catalogModule = await import(pathToFileURL(path.join(pluginDir, "dist/models/catalog.js")).href);
+const catalog = catalogModule.ANTIGRAVITY_MODEL_CATALOG;
+const cfg = JSON.parse(fs.readFileSync(configFile, "utf8"));
+const dirEntry = "./plugins/antigravity-auth";
+const fileEntry = "./plugins/antigravity-auth/plugin.js";
+const PROVIDER_IDS = ["google-antigravity", "antigravity"];
+
+// `plugins` (dir) is the V2 load path; `plugin` (file) is the V1 load path.
+// Keeping both is safe: V1 ignores unknown `plugins`, V2 ignores `plugin`
+// (only a benign "plugin path must be a directory" log line).
 if (!Array.isArray(cfg.plugins)) cfg.plugins = [];
 if (!cfg.plugins.includes(dirEntry)) cfg.plugins.push(dirEntry);
-if (Array.isArray(cfg.plugin)) {
-  const kept = cfg.plugin.filter((s) => s !== fileEntry && s !== dirEntry);
-  if (kept.length) cfg.plugin = kept;
-  else delete cfg.plugin;
-}
+if (!Array.isArray(cfg.plugin)) cfg.plugin = [];
+if (!cfg.plugin.includes(fileEntry)) cfg.plugin.push(fileEntry);
 
-// v2: the plugin registers providers + model catalog itself, so the legacy
-// `provider` block (V1 schema: npm/models/tool_call/reasoning) is removed to
-// avoid "unsupported legacy setting" warnings and model duplication.
-if (cfg.provider && typeof cfg.provider === "object") {
-  for (const pId of ["google-antigravity", "antigravity"]) delete cfg.provider[pId];
-  if (Object.keys(cfg.provider).length === 0) delete cfg.provider;
+if (target === "v1") {
+  // V1 reads the model catalog from `provider.<id>.models` (npm/tool_call/
+  // reasoning/modalities schema). Generated from ANTIGRAVITY_MODEL_CATALOG so
+  // it can never drift from the plugin's wire catalog.
+  cfg.provider ??= {};
+  for (const pId of PROVIDER_IDS) {
+    cfg.provider[pId] = {
+      ...(cfg.provider[pId] ?? {}),
+      name: pId === "google-antigravity" ? "Google Antigravity" : "Antigravity",
+      npm: "@ai-sdk/google",
+      models: catalog,
+    };
+  }
+} else {
+  // V2: the plugin registers providers + models itself via provider.transform.
+  // A config `provider` block for our ids is normalized onto the built-in
+  // Google provider and must be removed.
+  if (cfg.provider && typeof cfg.provider === "object") {
+    for (const pId of PROVIDER_IDS) delete cfg.provider[pId];
+    if (Object.keys(cfg.provider).length === 0) delete cfg.provider;
+  }
 }
 fs.writeFileSync(configFile, JSON.stringify(cfg, null, 2) + "\n");
 NODE
@@ -82,6 +112,6 @@ chmod +x "$PLUGIN_DIR/quota.js" "$PLUGIN_DIR/image.js" 2>/dev/null || true
 echo
 echo "==> Done. Next steps:"
 echo "  1. opencode auth login   # pick 'Google Antigravity (browser)'"
-echo "  2. opencode models google-antigravity"
+echo "  2. opencode models --standalone"
 echo "  3. opencode              # select google-antigravity/gemini-3.8-flash-high"
 echo "  4. node $PLUGIN_DIR/quota.js  # check remaining quota & token limits"

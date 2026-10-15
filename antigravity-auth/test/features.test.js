@@ -160,3 +160,43 @@ describe("Plugin Tool Registration", () => {
     assert.ok(alias.tool.check_quota);
   });
 });
+
+describe("V2 provider replacement", () => {
+  it("replaces preconfigured providers with the Antigravity SDK package and catalog", async () => {
+    const { setup } = await import("../dist/plugin-v2.js");
+    const providers = new Map([
+      ["google-antigravity", { provider: { id: "google-antigravity" } }],
+      ["antigravity", { provider: { id: "antigravity" } }],
+    ]);
+    const added = new Map();
+    const removed = [];
+    const ctx = {
+      integration: {
+        transform: async () => {},
+        auth: { set: async () => {} },
+        connection: { active: async () => undefined, resolve: async () => undefined },
+      },
+      provider: {
+        transform: async (callback) => callback({
+          get: (id) => providers.get(id),
+          remove: (id) => { removed.push(id); providers.delete(id); },
+          add: (input) => {
+            const id = input.info.id;
+            added.set(id, input);
+            providers.set(id, { provider: input.info });
+          },
+        }),
+      },
+      tool: { transform: async (callback) => callback({ add: () => {}, namespace: () => {} }) },
+      location: { directory: process.cwd() },
+      auth: { set: async () => {} },
+      aisdk: { hook: async () => {} },
+    };
+    await setup(ctx);
+    assert.deepEqual(removed, ["google-antigravity", "antigravity"]);
+    for (const id of removed) {
+      assert.equal(added.get(id).info.package, "aisdk:@ai-sdk/google");
+      assert.equal(added.get(id).models.length, 15);
+    }
+  });
+});

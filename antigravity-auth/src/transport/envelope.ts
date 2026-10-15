@@ -12,7 +12,7 @@ import { ANTIGRAVITY_MODEL_WIRE_PROFILES } from "../models/wire-profiles.js";
 import { resolveWireModelId } from "../models/aliases.js";
 import { dereferenceSchema, ensureRootObjectSchema, sanitizeForOpenApi } from "../utils/schema.js";
 import { sanitizeSystemInstruction } from "../utils/system.js";
-import { getAntigravityVersion } from "./version.js";
+import { getAntigravityVersion, DEFAULT_ANTIGRAVITY_CL } from "./version.js";
 import { buildSessionEnvelope } from "./session.js";
 import { resolveThoughtSignatureWithFallback } from "./thought-signature.js";
 import type { AntigravityEnvelope, GeminiContent, GeminiPart } from "../types/index.js";
@@ -87,7 +87,7 @@ export function getAntigravityHeaders(modelId = ""): Record<string, string> {
   const arch = process.arch === "arm64" ? "arm64" : "amd64";
 
   let userAgentStr: string;
-  const uaMode = (process.env.OPENCODE_AGY_UA_MODE || "ide").toLowerCase();
+  const uaMode = (process.env.OPENCODE_AGY_UA_MODE || "hub").toLowerCase();
   if (uaMode === "sdk") {
     userAgentStr = `antigravity/${getAntigravityVersion()} ${platform}/${arch}`;
   } else if (uaMode === "desktop") {
@@ -95,10 +95,13 @@ export function getAntigravityHeaders(modelId = ""): Record<string, string> {
   } else if (uaMode === "cli") {
     const cliVer = process.env.PI_AI_ANTIGRAVITY_VERSION || "1.1.13";
     userAgentStr = `antigravity/cli/${cliVer} (aidev_client; os_type=${platform}; arch=${arch}; auth_method=consumer)`;
-  } else {
-    // Default to official Antigravity IDE desktop fingerprint; the version
-    // auto-tracks the latest release via the electron-builder update manifest.
+  } else if (uaMode === "ide") {
+    // Legacy IDE fingerprint: upstream serves it the pre-Argon model roster.
     userAgentStr = `antigravity/ide/${getAntigravityVersion()} ${platform}/${arch}`;
+  } else {
+    // Default `hub` fingerprint — required for Gemini 4 Argon on
+    // daily-cloudcode-pa (upstream 404s ide/bare UAs, prod then 429s).
+    userAgentStr = `antigravity/hub/${getAntigravityVersion()} (aidev_client; os_type=${platform}; arch=${arch}; cl=${DEFAULT_ANTIGRAVITY_CL})`;
   }
 
   const headers: Record<string, string> = {

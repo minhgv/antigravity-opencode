@@ -32,9 +32,11 @@ export const SCOPES = [
 export const PROVIDER_ID = "google-antigravity";
 export const OAUTH_DUMMY_KEY = "opencode-oauth-dummy-key";
 export const DEFAULT_ENDPOINT = "https://cloudcode-pa.googleapis.com";
-export const ANTIGRAVITY_DAILY = "https://daily-cloudcode-pa.sandbox.googleapis.com";
-// `autopush` is a pre-prod endpoint the real client does not use for traffic.
-export const ENDPOINT_FALLBACKS = [ANTIGRAVITY_DAILY, DEFAULT_ENDPOINT];
+/** Primary: the non-sandbox daily host — the fingerprint the hub client sends traffic to. */
+export const ANTIGRAVITY_DAILY = "https://daily-cloudcode-pa.googleapis.com";
+export const ANTIGRAVITY_DAILY_SANDBOX = "https://daily-cloudcode-pa.sandbox.googleapis.com";
+// Order matches the real client: daily (non-sandbox) -> sandbox -> production.
+export const ENDPOINT_FALLBACKS = [ANTIGRAVITY_DAILY, ANTIGRAVITY_DAILY_SANDBOX, DEFAULT_ENDPOINT];
 
 export const CLAUDE_THINKING_BETA_HEADER = "interleaved-thinking-2025-05-14";
 export const SKIP_THOUGHT_SIGNATURE = "skip_thought_signature_validator";

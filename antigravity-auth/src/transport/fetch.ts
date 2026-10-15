@@ -3,7 +3,7 @@
  * Wraps @ai-sdk/google HTTP calls, routes to Cloud Code Assist endpoints,
  * handles token auto-refresh, exponential backoff, and SSE unwrapping.
  */
-import { ENDPOINT_FALLBACKS, DEFAULT_ENDPOINT } from "../auth/constants.js";
+import { ENDPOINT_FALLBACKS } from "../auth/constants.js";
 import { resolveWireModelId, getFallbackWireModelId } from "../models/aliases.js";
 import { extractRetryDelay, parseAntigravityRateLimitReason } from "../utils/retry.js";
 import { antigravityFetch, prewarmConnection } from "../utils/http.js";
@@ -145,7 +145,7 @@ function prependChunk(first: Uint8Array, body: ReadableStream<Uint8Array>): Read
 
 export function createAntigravityFetch(deps: AntigravityFetchDeps) {
   // Prewarm TLS connection to default endpoint in background
-  prewarmConnection(DEFAULT_ENDPOINT);
+  prewarmConnection(ENDPOINT_FALLBACKS[0]);
 
   const baseFetch = deps.fetchImpl || antigravityFetch;
 

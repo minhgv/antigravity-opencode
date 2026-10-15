@@ -68,6 +68,7 @@ interface ProviderRecordLike {
 
 interface ProviderEditor {
   get(providerID: string): ProviderRecordLike | undefined;
+  remove?(providerID: string): void;
   add(input: { info: Record<string, unknown>; models: Record<string, unknown>[] }): void;
 }
 
@@ -293,7 +294,7 @@ export async function setup(ctx: PluginContextV2) {
   await ctx.provider.transform((editor: ProviderEditor) => {
     for (const providerID of PROVIDER_IDS) {
       const existing = editor.get(providerID);
-      if (existing) continue; // user-defined provider wins
+      if (existing) editor.remove?.(providerID);
       editor.add({
         info: {
           id: providerID,
