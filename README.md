@@ -63,17 +63,25 @@ Cung cấp toàn quyền truy cập hệ sinh thái **Gemini (Flash, Pro, Thinki
 
 Yêu cầu: **Node.js 18+**, **OpenCode v2.x** (khuyên dùng) hoặc **v1.14.0+**.
 
-Chạy lệnh cài đặt tự động (idempotent, an toàn, tự merge cấu hình vào `opencode.json` mà không ghi đè cài đặt khác):
+Chạy lệnh cài đặt tự động (idempotent, an toàn re-run, tự merge cấu hình mà không ghi đè key khác):
 
 ```bash
 bash install.sh
 ```
 
-Trên OpenCode **v2**, installer ghi `plugins: ["./plugins/antigravity-auth"]` (directory plugin `{id, setup}`) thay cho entry `plugin` của v1, đồng thời dọn các block `provider`/`plugin` cũ của plugin để tránh trùng model. SDK `@ai-sdk/google` được vendor thành một bundle tự chứa (`dist/vendor/google-ai-sdk.js`) vì plugin host của v2 không resolve nested bare imports từ `node_modules`.
+Installer **tự detect mọi layout** và cấu hình một lần cho đủ — không cần sửa tay:
 
-*(Tùy chọn: Đặt `OPENCODE_AGY_SKIP_CONFIG=1 bash install.sh` nếu chỉ muốn build và sao chép mã nguồn mà không sửa `opencode.json`).*
+| Layout | Hành vi |
+|---|---|
+| Chỉ v1 | `~/.config/opencode/opencode.json` ← `plugin` + `provider.<id>.models` |
+| Chỉ v2 | `~/.config/opencode/opencode.json` ← `plugins` (không `provider`) |
+| **v1 + v2** | `~/.config/opencode` (v1 format) + `~/.config/opencode2` (v2 format), wrapper `opencode`/`opencode2`, symlink share `plugins`/`skills`/`agents`/`commands`/`context-mode`/`AGENTS.md`, hardlink `auth.json` |
 
-> ⚠️ **Sau khi cài/nâng cấp trên v2:** nếu `opencode serve` daemon đang chạy ngầm thì plugin cũ vẫn nằm trong bộ nhớ — restart lại process (kill rồi mở `opencode` lại) trước khi dùng, nếu không request sẽ báo `API key not valid`.
+Kèm theo: wrapper `~/.local/bin/opencode` (v1, data dir riêng `~/.local/share/opencode-v1` tránh đụng schema `opencode.db`), wrapper `~/.opencode/bin/opencode2` (v2, `XDG_CONFIG_HOME=~/.config/opencode2`), adhoc re-sign binary macOS, đảm bảo entry `google-antigravity` trong `auth.json`, và **tự restart `opencode serve`** để plugin mới có hiệu lực (fix lỗi `API key not valid`).
+
+Trên **v2**, plugin đăng ký providers + model catalog qua `provider.transform` (`plugins: ["./plugins/antigravity-auth"]`); SDK `@ai-sdk/google` được vendor thành `dist/vendor/google-ai-sdk.js` vì plugin host v2 không resolve nested bare imports. Trên **v1**, tools (`check_quota`, `generate_image`) dùng `tool()` helper từ `@opencode-ai/plugin` với zod `args`.
+
+*(Tùy chọn: `OPENCODE_AGY_SKIP_CONFIG=1` chỉ copy file không sửa config; `OPENCODE_AGY_NO_RESTART=1` không kill daemon; `OPENCODE_AGY_TARGET=v1|v2` ép target.)*
 
 ---
 
