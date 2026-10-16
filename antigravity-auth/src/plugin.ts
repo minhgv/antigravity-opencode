@@ -24,6 +24,9 @@ import {
 import { createAntigravityFetch } from "./transport/index.js";
 import { generateAntigravityImage } from "./image/index.js";
 import { fetchFullQuotaReport, formatQuotaReport } from "./quota/index.js";
+// Static import: resolved at build time here, at runtime inside the V1 host
+// (opencode provides @opencode-ai/plugin in its plugin sandbox).
+import { tool } from "@opencode-ai/plugin";
 import type {
   OpenCodePluginContext,
   OAuthCredentials,
@@ -36,15 +39,16 @@ const ALIAS_PROVIDER_ID = "antigravity";
 /**
  * Creates OpenCode tool definition for checking Antigravity Quota.
  */
-export function createCheckQuotaTool() {
-  return {
+export async function createCheckQuotaTool() {
+  // V1 host requires the official `tool()` helper with zod args — plain
+  // JSON-schema `args` objects crash its schema walker (`n._zod.def`).
+  return tool({
     description:
       "Check Google Antigravity remaining quota, shared token pools (Gemini Models, Claude & GPT Models), remaining percentage, and reset time.",
     args: {
-      showModels: {
-        type: "boolean",
-        description: "Whether to list individual model quota rows in addition to shared pools (default: false).",
-      },
+      showModels: tool.schema.boolean().optional().describe(
+        "Whether to list individual model quota rows in addition to shared pools (default: false).",
+      ),
     },
     async execute(args?: { showModels?: boolean }) {
       const auth = await resolveStoredAccessToken();
@@ -64,34 +68,29 @@ export function createCheckQuotaTool() {
         },
       };
     },
-  };
+  });
 }
 
 /**
  * Creates OpenCode tool definition for Gemini Image Generation.
  */
-export function createGenerateImageTool() {
-  return {
+export async function createGenerateImageTool() {
+  return tool({
     description:
       "Generate high-quality images using Gemini Image models via Google Antigravity (gemini-3-pro-image, gemini-3.1-flash-image). Automatically saves the image file to the workspace.",
     args: {
-      prompt: {
-        type: "string",
-        description: "Detailed visual description of the image to generate.",
-      },
-      aspectRatio: {
-        type: "string",
-        description:
-          "Aspect ratio: '1:1' (default), '16:9', '9:16', '4:3', '3:4', '2:3', '3:2', '4:5', '5:4', '21:9'.",
-      },
-      path: {
-        type: "string",
-        description: "Optional project-relative file or directory path to save the image (e.g. 'assets/hero.png').",
-      },
-      model: {
-        type: "string",
-        description: "Optional image model: 'gemini-3-pro-image' (default) or 'gemini-3.1-flash-image'.",
-      },
+      prompt: tool.schema.string().describe(
+        "Detailed visual description of the image to generate.",
+      ),
+      aspectRatio: tool.schema.string().optional().describe(
+        "Aspect ratio: '1:1' (default), '16:9', '9:16', '4:3', '3:4', '2:3', '3:2', '4:5', '5:4', '21:9'.",
+      ),
+      path: tool.schema.string().optional().describe(
+        "Optional project-relative file or directory path to save the image (e.g. 'assets/hero.png').",
+      ),
+      model: tool.schema.string().optional().describe(
+        "Optional image model: 'gemini-3-pro-image' (default) or 'gemini-3.1-flash-image'.",
+      ),
     },
     async execute(args: { prompt: string; aspectRatio?: string; path?: string; model?: string }, context?: any) {
       const auth = await resolveStoredAccessToken();
@@ -121,7 +120,7 @@ export function createGenerateImageTool() {
         },
       };
     },
-  };
+  });
 }
 
 /**
@@ -302,8 +301,8 @@ export async function GoogleAntigravityAuthPlugin(
   return {
     auth: createAuthHook(PRIMARY_PROVIDER_ID, ctx),
     tool: {
-      generate_image: createGenerateImageTool(),
-      check_quota: createCheckQuotaTool(),
+      generate_image: await createGenerateImageTool(),
+      check_quota: await createCheckQuotaTool(),
     },
   };
 }
@@ -317,8 +316,8 @@ export async function AntigravityAliasAuthPlugin(
   return {
     auth: createAuthHook(ALIAS_PROVIDER_ID, ctx),
     tool: {
-      generate_image: createGenerateImageTool(),
-      check_quota: createCheckQuotaTool(),
+      generate_image: await createGenerateImageTool(),
+      check_quota: await createCheckQuotaTool(),
     },
   };
 }
