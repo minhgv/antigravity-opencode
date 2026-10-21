@@ -128,9 +128,8 @@ fi
 
 # V2 wrapper: opencode2 -> v2 binary with isolated XDG_CONFIG_HOME.
 if [ -n "$V2_BIN" ] && [ "$V2_SEPARATE" -eq 1 ]; then
-  if [ ! -f "$V2_WRAPPER" ] || grep -q 'opencode2' "$V2_WRAPPER" 2>/dev/null; then
-    mkdir -p "$(dirname "$V2_WRAPPER")"
-    cat > "$V2_WRAPPER" <<EOF
+  mkdir -p "$(dirname "$V2_WRAPPER")"
+  cat > "$V2_WRAPPER" <<EOF
 #!/bin/sh
 # opencode2 — managed by antigravity-auth install.sh
 # V2 resolves config as \$XDG_CONFIG_HOME/opencode; the self-symlink
@@ -138,14 +137,15 @@ if [ -n "$V2_BIN" ] && [ "$V2_SEPARATE" -eq 1 ]; then
 export XDG_CONFIG_HOME="\${XDG_CONFIG_HOME:-$V2_DIR}"
 exec "\$(dirname "\$0")/opencode" "\$@"
 EOF
-    chmod +x "$V2_WRAPPER"
-    echo "    wrote v2 wrapper: $V2_WRAPPER"
-  fi
+  chmod +x "$V2_WRAPPER"
+  echo "    wrote v2 wrapper: $V2_WRAPPER"
   mkdir -p "$V2_DIR"
-  [ -e "$V2_DIR/opencode" ] || ln -s . "$V2_DIR/opencode"
+  if [ -d "$V2_DIR/opencode" ] && [ ! -L "$V2_DIR/opencode" ]; then
+    cp -rn "$V2_DIR/opencode/." "$V2_DIR/" 2>/dev/null || true
+    rm -rf "$V2_DIR/opencode"
+  fi
+  [ -L "$V2_DIR/opencode" ] || ln -sfn . "$V2_DIR/opencode"
   V2_CFG_DIR="$V2_DIR"
-  if [ ! -L "$V2_DIR/opencode" ]; then V2_CFG_DIR="$V2_DIR/opencode"; fi
-  mkdir -p "$V2_CFG_DIR"
   # Shared entries: symlink from v2 config to v1 config when missing.
   for name in "${SHARED_ENTRIES[@]}"; do
     src="$V1_CFG_DIR/$name"; dst="$V2_CFG_DIR/$name"
@@ -238,7 +238,7 @@ if [ "${OPENCODE_AGY_NO_RESTART:-0}" != "1" ]; then
   for pid in $(pgrep -f "opencode serve" 2>/dev/null || true); do
     [ "$pid" = "$$" ] || [ "$pid" = "$PPID" ] && continue
     comm="$(ps -o comm= -p "$pid" 2>/dev/null || true)"
-    case "$comm" in
+    case "$(basename "$comm")" in
       opencode|opencode2) kill "$pid" 2>/dev/null && killed=$((killed+1)) ;;
     esac
   done

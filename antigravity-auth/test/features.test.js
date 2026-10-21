@@ -200,3 +200,26 @@ describe("V2 provider replacement", () => {
     }
   });
 });
+
+describe("V2 credential resolution", () => {
+  it("resolves active integration connection credential first", async () => {
+    const { resolveV2Credential } = await import("../dist/auth/v2-credentials.js");
+    const ctx = {
+      integration: {
+        connection: {
+          active: async (id) => (id === "google-antigravity" ? { type: "credential", id: "c1" } : undefined),
+          resolve: async () => ({
+            type: "oauth",
+            methodID: "oauth",
+            access: "ya29.active-token",
+            metadata: { projectId: "proj-active" },
+          }),
+        },
+      },
+    };
+    const cred = await resolveV2Credential(ctx, "antigravity");
+    assert.ok(cred);
+    assert.equal(cred.access, "ya29.active-token");
+    assert.equal(cred.metadata.projectId, "proj-active");
+  });
+});

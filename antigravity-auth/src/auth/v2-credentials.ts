@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { DEFAULT_PROJECT_ID } from "./constants.js";
 import { discoverProject } from "./account.js";
 import { refreshAccessToken, toExpires } from "./pkce.js";
-import { readMeta, writeMeta } from "./store.js";
+import { readMeta, writeMeta, resolveStoredAccessToken } from "./store.js";
 
 export const PRIMARY_PROVIDER_ID = "google-antigravity";
 export const ALIAS_PROVIDER_ID = "antigravity";
@@ -152,10 +152,23 @@ export async function resolveV2Credential(
       const value = await ctx.integration.connection.resolve(connection);
       if (value && value.type === "oauth" && value.access) return value;
     }
-    return null;
   } catch {
-    return null;
+    // Fall through to stored credential fallback below.
   }
+  try {
+    const stored = await resolveStoredAccessToken();
+    if (stored?.access) {
+      return {
+        type: "oauth",
+        methodID: "oauth",
+        access: stored.access,
+        metadata: stored.projectId ? { projectId: stored.projectId } : {},
+      };
+    }
+  } catch {
+    // Ignore fallback errors.
+  }
+  return null;
 }
 
 /** projectId lookup order: credential metadata → sidecar meta → discover. */
