@@ -2,7 +2,7 @@
 
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
 [![OpenCode](https://img.shields.io/badge/OpenCode-v2.x%20%7C%20v1.14%2B-blue.svg)](https://opencode.ai)
-[![Tests](https://img.shields.io/badge/Tests-55%2F55%20pass-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-57%2F57%20pass-brightgreen.svg)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-ESM-blue.svg)](https://www.typescriptlang.org/)
 
 Plugin tích hợp xác thực **Google Antigravity OAuth** và **Cloud Code Assist API** trực tiếp vào **OpenCode** — hỗ trợ **v2.x** (quyền chính, qua `plugins` dir API `{id, setup}`) và **v1.14+** (legacy `plugin` file entry).
@@ -55,7 +55,7 @@ Cung cấp toàn quyền truy cập hệ sinh thái **Gemini (Flash, Pro, Thinki
   - Bộ giải quyết đệ quy `$defs/$ref` và chuẩn hóa schema về OpenAPI, loại bỏ triệt để lỗi HTTP 400 (`INVALID_ARGUMENT`).
   - Giữ lại `thoughtSignature` cho Gemini 3 trong các chuỗi tool call lặp vòng.
   - Cơ chế 60s first-event watchdog failover và ghi nhớ endpoint thành công gần nhất (`lastGoodEndpoint`).
-- 🧪 **51/51 Unit Tests pass 100%** trên 8 test suites (Node.js Test Runner).
+- 🧪 **57/57 Unit Tests pass 100%** trên Node.js Test Runner.
 
 ---
 
@@ -71,13 +71,16 @@ bash install.sh
 
 Installer **tự detect mọi layout** và cấu hình một lần cho đủ — không cần sửa tay:
 
-| Layout | Hành vi |
-|---|---|
-| Chỉ v1 | `~/.config/opencode/opencode.json` ← `plugin` + `provider.<id>.models` |
-| Chỉ v2 | `~/.config/opencode/opencode.json` ← `plugins` (không `provider`) |
-| **v1 + v2** | `~/.config/opencode` (v1 format) + `~/.config/opencode2` (v2 format), wrapper `opencode`/`opencode2`, symlink share `plugins`/`skills`/`agents`/`commands`/`context-mode`/`AGENTS.md`, hardlink `auth.json` |
+| Phiên bản / Lệnh | Binary Wrapper | Thư mục Config (`opencode.json`) | Thư mục Data (`auth.json` / `opencode.db`) | Định dạng Config |
+|---|---|---|---|---|
+| **OpenCode V1** (`opencode`) | `~/.local/bin/opencode` | **`~/.config/opencode/opencode.json`** *(mặc định)* | `~/.local/share/opencode-v1/opencode/` | `plugin: [...]` + `provider.<id>.models` |
+| **OpenCode V2** (`opencode2`) | `~/.opencode/bin/opencode2` | **`~/.config/opencode2/opencode.json`** *(qua `XDG_CONFIG_HOME=~/.config/opencode2`)* | `~/.local/share/opencode/` | `plugins: ["./plugins/antigravity-auth"]` (không khai báo `provider` tĩnh) |
 
-Kèm theo: wrapper `~/.local/bin/opencode` (v1, data dir riêng `~/.local/share/opencode-v1` tránh đụng schema `opencode.db`), wrapper `~/.opencode/bin/opencode2` (v2, `XDG_CONFIG_HOME=~/.config/opencode2`), adhoc re-sign binary macOS, đảm bảo entry `google-antigravity` trong `auth.json`, và **tự restart `opencode serve`** để plugin mới có hiệu lực (fix lỗi `API key not valid`).
+- **Quy ước phân tách V1 / V2 cố định**:
+  - **V1 (`opencode`)** luôn dùng thư mục mặc định **`~/.config/opencode`**.
+  - **V2 (`opencode2`)** luôn dùng thư mục riêng **`~/.config/opencode2`** (thông qua `export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config/opencode2}"` trong `~/.opencode/bin/opencode2` và self-symlink `~/.config/opencode2/opencode -> .` để giữ các file phẳng trực tiếp tại `~/.config/opencode2/opencode.json`).
+  - Các thư mục dùng chung (`plugins`, `skills`, `agents`, `commands`, `context-mode`, `AGENTS.md`) được symlink từ `~/.config/opencode2` sang `~/.config/opencode`; `auth.json` được hardlink giữa V1 và V2 để đăng nhập 1 lần dùng cho cả 2 bản.
+  - Tự động re-sign adhoc binary trên macOS và **restart `opencode serve` daemon** khi chạy `install.sh` để áp dụng cấu hình/plugin mới ngay lập tức (tránh lỗi `API key not valid`).
 
 Trên **v2**, plugin đăng ký providers + model catalog qua `provider.transform` (`plugins: ["./plugins/antigravity-auth"]`); SDK `@ai-sdk/google` được vendor thành `dist/vendor/google-ai-sdk.js` vì plugin host v2 không resolve nested bare imports. Trên **v1**, tools (`check_quota`, `generate_image`) dùng `tool()` helper từ `@opencode-ai/plugin` với zod `args`.
 
@@ -200,7 +203,7 @@ antigravity-opencode/
     ├── quota.js          # CLI quota runner
     ├── image.js          # CLI image runner
     ├── package.json      # Dependencies & scripts
-    └── test/             # Bộ kiểm thử 51 unit tests (Node.js test runner)
+    └── test/             # Bộ kiểm thử 57 unit tests (Node.js test runner)
 ```
 
 ---
@@ -214,7 +217,7 @@ cd antigravity-auth
 npm test
 ```
 
-Tất cả **51/51 unit tests trên 8 test suites** đảm bảo tính toàn vẹn:
+Tất cả **57/57 unit tests** đảm bảo tính toàn vẹn:
 - P1: Quota & Usage formatting
 - P2: Image Generation module & Path traversal defense
 - P3: Deterministic ProjectId & Environment overrides
