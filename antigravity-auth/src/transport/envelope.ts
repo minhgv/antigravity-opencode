@@ -13,7 +13,7 @@ import { resolveWireModelId } from "../models/aliases.js";
 import { dereferenceSchema, ensureRootObjectSchema, sanitizeForOpenApi } from "../utils/schema.js";
 import { sanitizeSystemInstruction } from "../utils/system.js";
 import { getAntigravityVersion, DEFAULT_ANTIGRAVITY_CL } from "./version.js";
-import { buildSessionEnvelope } from "./session.js";
+import { buildSessionEnvelope, deriveAntigravitySessionId } from "./session.js";
 import { resolveThoughtSignatureWithFallback } from "./thought-signature.js";
 import type { AntigravityEnvelope, GeminiContent, GeminiPart } from "../types/index.js";
 
@@ -181,7 +181,6 @@ export function postProcessContents(
 ): GeminiContent[] {
   if (!Array.isArray(contents)) return contents;
   const gemini3 = isGemini3Model(modelId);
-  const claudeThinking = isClaudeThinkingModel(modelId);
   const needIds = requiresToolCallId(modelId);
   let toolCounter = 0;
   const lastToolCallIds = new Map<string, string>();
@@ -224,9 +223,11 @@ export function postProcessContents(
             }
           }
           next.functionCall = fc;
-          const hasSig = Boolean(next.thoughtSignature || fc.thoughtSignature);
-          if (!hasSig) {
-            // Try multi-turn cache first
+          const existingSig = next.thoughtSignature || fc.thoughtSignature;
+          const hasRealSig = Boolean(existingSig && existingSig !== SKIP_THOUGHT_SIGNATURE);
+          if (!hasRealSig) {
+            // Try multi-turn cache first (recovers real signature even when
+            // @ai-sdk/google pre-injected skip_thought_signature_validator)
             const cached = resolveThoughtSignatureWithFallback(
               options.sessionId,
               fc.id,
@@ -235,19 +236,11 @@ export function postProcessContents(
             );
             if (cached) {
               next.thoughtSignature = cached;
-            } else if (gemini3 && isFirstToolCall) {
+            } else if (!existingSig && gemini3 && isFirstToolCall) {
+              // Official Gemini 3 contract: attach sentinel ONLY to the first
+              // unsigned functionCall of a model turn; sibling calls in the
+              // same turn MUST remain bare (never inject a fake/truncated base64).
               next.thoughtSignature = SKIP_THOUGHT_SIGNATURE;
-            } else if (gemini3 || claudeThinking) {
-              // Multi-turn thought signature fallback when orphaned/untracked
-              const fallback = resolveThoughtSignatureWithFallback(
-                options.sessionId,
-                fc.id,
-                fc.name,
-                { fallback: true },
-              );
-              if (fallback) {
-                next.thoughtSignature = fallback;
-              }
             }
           }
           isFirstToolCall = false;
@@ -339,13 +332,17 @@ export function buildEnvelope(
 ): AntigravityEnvelope {
   const isAntigravity = opts.isAntigravity !== false;
   const wireModelId = resolveWireModelId(opts.modelId);
+  const rawContents = Array.isArray(geminiBody.contents)
+    ? (geminiBody.contents as GeminiContent[])
+    : undefined;
+  const effectiveSessionId =
+    opts.sessionId ?? (isAntigravity ? deriveAntigravitySessionId(rawContents) : undefined);
   let request = postProcessGeminiBody({ ...geminiBody }, wireModelId, {
-    sessionId: opts.sessionId,
+    sessionId: effectiveSessionId,
   });
   if (isAntigravity) {
     request = sanitizeSystemInstruction(request);
   }
-
   // Google One AI Credits Protection:
   // Cloud Code Assist will deduct from paid Google One AI Credits if `enabledCreditTypes`
   // includes "GOOGLE_ONE_AI". By default, strip this field to protect user credits.
@@ -370,7 +367,7 @@ export function buildEnvelope(
         : undefined,
       wireModelId,
       claude: isClaudeModel(wireModelId),
-      sessionId: opts.sessionId,
+      sessionId: effectiveSessionId,
     });
     sessionId = session.sessionId;
     requestId = session.requestId;

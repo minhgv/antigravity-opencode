@@ -6,21 +6,20 @@
  * (Gemini 2.0 Flash Thinking, Gemini 3, Claude 3.7 Thinking).
  *
  * Stores signatures captured from streaming responses keyed by session and tool call identifier.
- * Provides fallback default signatures for orphaned tool calls.
  */
 
-export const DEFAULT_THINKING_AG_SIGNATURE =
-  "EuwGCukGAXLI2nxwZIq54WWSoL/YN0P3TsDZ7zRnLi8g0S4aVr2HUGxvaHKySuY6HAVzcE0GPGjXrytLIldxthSvfxgUlJh6Qa9Z+Oj5QZBlYdg6HaJ6yuY5R7waE6rdwBsRf7Ft2j3DJ9rMi9qhWFqApewYtPhls3VHtuvND3l8Rm09+lbAXQs6KKWEWrxNLKTBkfpMgXhRERc/TQRMZu1twAablm6/Zk1tsYRvfWKLsNbeKF+CCojJdXJKvnR/8Ouuoa+Y2Ti20hcW7aZIIjZDFYPU//k6Ybmhg69J/imbFai2ckhfLaisqdDkdoIiBJScTOUvYqP6AE9d4MsydSC+UlhIMk4hoP76R8vUSCZRMkjOaDXstf/QoVZKbt94wyRZgAJ1G0BqI8L5ow86kLpA4wJEtxsRGymOE4bKUvApveBakYDNM9APkf+LbtbzWSseGjoZcSlycF9iN8Q2XNYKRrHbv3Lr5Y8JjdH/5y/6SHkNehTEZugaeGnSPSyCTWto1kQgHpxdWmhkLfJGNUGLmue7Mesj4TSms4J33mRpYVhNB/J333FCqIP0hr/E7BkkjEn7yZ4X7SQlh+xKPurapsnHRwiKmtsilmEFrnTE9iQr+pMr6M29qqFNv1tr5yumbaJw8JW9sB15tNsRv+dW6BjNanbsKz7HCgKUBc8tGy+7YuhXzAfViyRefcjK7eZW0Fbyt7AbybJTKz";
+import { SKIP_THOUGHT_SIGNATURE } from "../auth/constants.js";
+
+/**
+ * Valid base64-encoded sentinel (`"skip_thought_signature_validator"` -> base64).
+ * Retained for backward compatibility with callers importing DEFAULT_THINKING_AG_SIGNATURE.
+ */
+export const DEFAULT_THINKING_AG_SIGNATURE = SKIP_THOUGHT_SIGNATURE;
 
 const MAX_SIGNATURE_ENTRIES = 2048;
 
 /** In-memory cache mapping cacheKey -> thoughtSignature */
 const signatureCache = new Map<string, string>();
-
-/** Generate cache keys */
-function makeKey(sessionId: string, identifier: string): string {
-  return `${sessionId}::${identifier}`;
-}
 
 /**
  * Cache a thought signature for a session and call identifier / tool name.
@@ -31,13 +30,13 @@ export function recordThoughtSignature(
   signature: string | undefined,
 ): void {
   if (!sessionId || !identifier || !signature) return;
+  if (signature === SKIP_THOUGHT_SIGNATURE) return;
   if (signatureCache.size >= MAX_SIGNATURE_ENTRIES) {
     const oldest = signatureCache.keys().next().value;
     if (oldest !== undefined) signatureCache.delete(oldest);
   }
-  signatureCache.set(makeKey(sessionId, identifier), signature);
+  signatureCache.set(`${sessionId}::${identifier}`, signature);
 }
-
 /**
  * Retrieve a cached thought signature for a session and identifier.
  */
@@ -46,14 +45,15 @@ export function getCachedThoughtSignature(
   identifier: string | undefined,
 ): string | undefined {
   if (!sessionId || !identifier) return undefined;
-  return signatureCache.get(makeKey(sessionId, identifier));
+  return signatureCache.get(`${sessionId}::${identifier}`);
 }
 
 /**
- * Resolve thought signature with fallback:
+ * Resolve thought signature from cache:
  * 1. Check cached signature for callId
  * 2. Check cached signature for tool name
- * 3. Fallback to DEFAULT_THINKING_AG_SIGNATURE
+ * 3. Optional fallback when explicitly requested (defaults to false — never
+ *    fabricate a cryptographic signature for unsigned sibling tool calls)
  */
 export function resolveThoughtSignatureWithFallback(
   sessionId: string | undefined,
@@ -71,7 +71,7 @@ export function resolveThoughtSignatureWithFallback(
       if (cached) return cached;
     }
   }
-  if (options.fallback !== false) {
+  if (options.fallback === true) {
     return DEFAULT_THINKING_AG_SIGNATURE;
   }
   return undefined;

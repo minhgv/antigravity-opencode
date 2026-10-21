@@ -899,7 +899,7 @@ describe("native architecture improvements", () => {
     }
   });
 
-  it("recovers missing thought signature from cache or injects fallback", () => {
+  it("recovers missing thought signature from cache and leaves unsigned sibling tool calls bare", () => {
     const sessionId = "session-sig-test-123";
     clearThoughtSignatureCache();
 
@@ -914,10 +914,11 @@ describe("native architecture improvements", () => {
         ],
       },
     ];
-    const outSingle = postProcessContents(singleCall, "gemini-3.7-flash-high", { sessionId });
+    const outSingle = postProcessContents(singleCall, "gemini-3.8-flash-high", { sessionId });
     assert.equal(outSingle[0].parts[0].thoughtSignature, SKIP_THOUGHT_SIGNATURE);
 
-    // Subsequent (multi-tool) call in the same turn gets fallback signature if uncached
+    // Subsequent (multi-tool) calls in the same turn stay bare if uncached
+    // (never inject an invalid/corrupted base64 signature on sibling parts)
     const multiCalls = [
       {
         role: "model",
@@ -927,16 +928,44 @@ describe("native architecture improvements", () => {
         ],
       },
     ];
-    const outMulti = postProcessContents(multiCalls, "gemini-3.7-flash-high", { sessionId });
+    const outMulti = postProcessContents(multiCalls, "gemini-3.8-flash-high", { sessionId });
     assert.equal(outMulti[0].parts[0].thoughtSignature, SKIP_THOUGHT_SIGNATURE);
-    assert.equal(outMulti[0].parts[1].thoughtSignature, DEFAULT_THINKING_AG_SIGNATURE);
+    assert.equal(outMulti[0].parts[1].thoughtSignature, undefined);
 
-    // With recorded signature in cache, cached signature is recovered for any turn
-    const recordedSig = "sig_from_previous_model_turn_abc";
+    // With recorded signature in cache, cached signature is recovered even if
+    // @ai-sdk/google pre-injected SKIP_THOUGHT_SIGNATURE on the first call
+    const recordedSig = Buffer.from("real-google-thought-signature-bytes").toString("base64");
     recordThoughtSignature(sessionId, "call_1", recordedSig);
 
-    const outWithCached = postProcessContents(singleCall, "gemini-3.7-flash-high", { sessionId });
+    const outWithCached = postProcessContents(singleCall, "gemini-3.8-flash-high", { sessionId });
     assert.equal(outWithCached[0].parts[0].thoughtSignature, recordedSig);
+
+    // buildEnvelope derives sessionId before postProcessGeminiBody so cache hits work end-to-end
+    const convContents = [
+      { role: "user", parts: [{ text: "run two tools" }] },
+      {
+        role: "model",
+        parts: [
+          {
+            functionCall: { name: "tool1", args: {}, id: "call_env_1" },
+            thoughtSignature: SKIP_THOUGHT_SIGNATURE,
+          },
+          { functionCall: { name: "tool2", args: {}, id: "call_env_2" } },
+        ],
+      },
+    ];
+    const firstEnv = buildEnvelope(
+      { contents: convContents },
+      { projectId: "test-proj", modelId: "gemini-3.8-flash-high" },
+    );
+    const derivedSid = firstEnv.request.sessionId;
+    recordThoughtSignature(derivedSid, "call_env_1", recordedSig);
+    const secondEnv = buildEnvelope(
+      { contents: convContents },
+      { projectId: "test-proj", modelId: "gemini-3.8-flash-high" },
+    );
+    assert.equal(secondEnv.request.contents[1].parts[0].thoughtSignature, recordedSig);
+    assert.equal(secondEnv.request.contents[1].parts[1].thoughtSignature, undefined);
 
     clearThoughtSignatureCache();
   });
